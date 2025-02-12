@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/org': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:4000',
         changeOrigin: true,
       },
     },

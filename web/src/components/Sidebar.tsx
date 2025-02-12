@@ -11,120 +11,107 @@ import {
 } from '@tabler/icons-react';
 import { useOrganization, useProject, useMission } from '../api/hooks';
 
+interface NavItemProps {
+  label: string;
+  icon: React.ReactNode;
+  path: string;
+  active: boolean;
+  disabled?: boolean;
+  selectedItem?: string;
+  onClick: () => void;
+}
+
+function NavItem({ label, icon, path, active, disabled, selectedItem, onClick }: NavItemProps) {
+  return (
+    <NavLink
+      label={
+        <Stack gap={2}>
+          <Text>{label}</Text>
+          {selectedItem && (
+            <Text size="xs" c="dimmed" truncate>
+              Selected: {selectedItem}
+            </Text>
+          )}
+        </Stack>
+      }
+      leftSection={icon}
+      onClick={onClick}
+      active={active}
+      disabled={disabled}
+      color={disabled ? 'gray' : undefined}
+    />
+  );
+}
+
 export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { organization, project, mission } = useParams();
 
-  // Fetch current item details
-  const { data: orgData } = useOrganization(organization || '');
-  const { data: projectData } = useProject(organization || '', project || '');
-  const { data: missionData } = useMission(organization || '', project || '', mission || '');
+  const { data: orgData } = useOrganization(organization ?? '');
+  const { data: projectData } = useProject(organization ?? '', project ?? '');
+  const { data: missionData } = useMission(organization ?? '', project ?? '', mission ?? '');
 
-  const isActive = (path: string) => location.pathname.startsWith(path);
+  const navItems = [
+    {
+      label: 'Home',
+      icon: <IconHome size="1.2rem" />,
+      path: '/',
+      active: location.pathname === '/',
+      onClick: () => navigate('/'),
+    },
+    {
+      label: 'Organizations',
+      icon: <IconBuilding size="1.2rem" />,
+      path: '/org',
+      active: location.pathname === '/org',
+      selectedItem: orgData?.name,
+      onClick: () => navigate('/org'),
+    },
+    {
+      label: 'Projects',
+      icon: <IconFolder size="1.2rem" />,
+      path: `/org/${organization}`,
+      active: Boolean(organization && !project && location.pathname.startsWith(`/org/${organization}`)),
+      disabled: !organization,
+      selectedItem: projectData?.name,
+      onClick: () => organization && navigate(`/org/${organization}`),
+    },
+    {
+      label: 'Missions',
+      icon: <IconRocket size="1.2rem" />,
+      path: `/org/${organization}/project/${project}`,
+      active: Boolean(project && location.pathname.endsWith(`/project/${project}`)),
+      disabled: !organization || !project,
+      selectedItem: missionData?.name,
+      onClick: () => organization && project && navigate(`/org/${organization}/project/${project}`),
+    },
+    {
+      label: 'Assets',
+      icon: <IconPhoto size="1.2rem" />,
+      path: `/org/${organization}/project/${project}/mission/${mission}/assets`,
+      active: Boolean(mission && location.pathname.includes('/assets')),
+      disabled: !organization || !project || !mission,
+      selectedItem: missionData?.name,
+      onClick: () => organization && project && mission && 
+        navigate(`/org/${organization}/project/${project}/mission/${mission}/assets`),
+    },
+    {
+      label: 'Settings',
+      icon: <IconSettings size="1.2rem" />,
+      path: `/org/${organization}/project/${project}/settings`,
+      active: Boolean(project && location.pathname.endsWith('/settings')),
+      disabled: !organization || !project,
+      onClick: () => organization && project && 
+        navigate(`/org/${organization}/project/${project}/settings`),
+    },
+  ];
 
   return (
-    <div style={{ width: '240px', padding: '20px' }}>
-      <NavLink
-        label="Home"
-        leftSection={<IconHome size="1.2rem" />}
-        onClick={() => navigate('/')}
-        active={location.pathname === '/'}
-      />
-
-      <NavLink
-        label={
-          <Stack gap={2}>
-            <Text>Organizations</Text>
-            {orgData && (
-              <Text size="xs" c="dimmed" truncate>
-                Selected: {orgData.name}
-              </Text>
-            )}
-          </Stack>
-        }
-        leftSection={<IconBuilding size="1.2rem" />}
-        onClick={() => navigate('/org')}
-        active={location.pathname === '/org'}
-      />
-
-      {/* Organization-specific sections */}
-      <NavLink
-        label={
-          <Stack gap={2}>
-            <Text>Projects</Text>
-            {projectData && (
-              <Text size="xs" c="dimmed" truncate>
-                Selected: {projectData.name}
-              </Text>
-            )}
-          </Stack>
-        }
-        leftSection={<IconFolder size="1.2rem" />}
-        onClick={() => organization && navigate(`/org/${organization}`)}
-        active={Boolean(organization && !project && location.pathname.startsWith(`/org/${organization}`))}
-        disabled={!organization}
-        color={!organization ? 'gray' : undefined}
-      />
-
-      {/* Project-specific sections */}
-      <NavLink
-        label={
-          <Stack gap={2}>
-            <Text>Missions</Text>
-            {missionData && (
-              <Text size="xs" c="dimmed" truncate>
-                Selected: {missionData.name}
-              </Text>
-            )}
-          </Stack>
-        }
-        leftSection={<IconRocket size="1.2rem" />}
-        onClick={() => {
-          if (organization && project) {
-            navigate(`/org/${organization}/project/${project}`);
-          }
-        }}
-        active={Boolean(project && location.pathname.endsWith(`/project/${project}`))}
-        disabled={!organization || !project}
-        color={!organization || !project ? 'gray' : undefined}
-      />
-
-      {/* Mission-specific sections */}
-      <NavLink
-        label={
-          <Stack gap={2}>
-            <Text>Assets</Text>
-            {missionData && (
-              <Text size="xs" c="dimmed" truncate>
-                Mission: {missionData.name}
-              </Text>
-            )}
-          </Stack>
-        }
-        leftSection={<IconPhoto size="1.2rem" />}
-        onClick={() => {
-          if (organization && project && mission) {
-            navigate(`/org/${organization}/project/${project}/mission/${mission}/assets`);
-          }
-        }}
-        active={Boolean(mission && location.pathname.includes('/assets'))}
-        disabled={!organization || !project || !mission}
-        color={!organization || !project || !mission ? 'gray' : undefined}
-      />
-
-      <NavLink
-        label="Settings"
-        leftSection={<IconSettings size="1.2rem" />}
-        onClick={() => {
-          if (organization && project) {
-            navigate(`/org/${organization}/project/${project}/settings`);
-          }
-        }}
-        active={Boolean(project && location.pathname.endsWith('/settings'))}
-        disabled={!organization || !project}
-        color={!organization || !project ? 'gray' : undefined}
-      />
-    </div>
+    <Stack p="md">
+      {navItems.map((item) => (
+        <NavItem key={item.label} {...item} />
+      ))}
+    </Stack>
   );
 } 

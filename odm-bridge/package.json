@@ -1,0 +1,23 @@
+{
+  "name": "odm-bridge",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "bun run --watch src/index.ts"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@types/minio": "^7.1.1",
+    "adze": "^2.2.0",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "ioredis": "^5.5.0",
+    "minio": "^8.0.4"
+  }
+}
