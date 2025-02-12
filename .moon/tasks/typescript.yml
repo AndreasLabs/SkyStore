@@ -1,0 +1,75 @@
+$schema: 'https://moonrepo.dev/schemas/tasks.json'
+
+fileGroups:
+  typescript:
+  - 'src/**/*.ts'
+  - 'src/**/*.tsx'
+  - 'tests/**/*.ts'
+  - 'tests/**/*.tsx'
+  configs:
+  - 'tsconfig.json'
+  - 'tsconfig.*.json'
+  assets:
+  - 'public/**/*'
+
+tasks:
+  install:
+    command: 'bun install'
+
+  dev:
+    command: 'bun run dev'
+    deps:
+    - '~:install'
+    - 'docker:down'
+    - 'redis:up'
+    - 'minio:up'
+    options:
+      cache: false
+
+  build:
+    command: 'bun run build'
+    inputs:
+    - '@globs(typescript)'
+    - '@globs(assets)'
+    outputs:
+    - 'dist'
+    options:
+      runInCI: true
+
+  preview:
+    command: 'bun run preview'
+    deps:
+    - '~:build'
+    local: true
+    options:
+      persistent: true
+      runInCI: false
+
+  test:
+    command: 'bun test'
+    inputs:
+    - '@globs(typescript)'
+    options:
+      runInCI: true
+
+  typecheck:
+    command: 'bun run tsc'
+    inputs:
+    - '@globs(typescript)'
+    - '@globs(configs)'
+    options:
+      runInCI: true
+
+  lint:
+    command: 'bun run eslint'
+    inputs:
+    - '@globs(typescript)'
+    options:
+      runInCI: true
+
+  format:
+    command: 'bun run prettier'
+    inputs:
+    - '@globs(typescript)'
+    options:
+      runInCI: true

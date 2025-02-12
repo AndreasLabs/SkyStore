@@ -1,0 +1,14 @@
+$schema: 'https://moonrepo.dev/schemas/project.json'
+
+type: 'application'
+
+project:
+  name: 'redis'
+  description: 'Redis server'
+
+tasks:
+  up:
+    script: 'docker compose up -d redis && sleep 3'
+
+  down:
+    command: 'docker compose down redis'

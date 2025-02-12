@@ -1,0 +1,17 @@
+$schema: 'https://moonrepo.dev/schemas/project.json'
+
+type: 'application'
+
+project:
+  name: 'docker'
+  description: 'Docker compose'
+
+tasks:
+  up:
+    command: 'docker compose up -d'
+
+  down:
+    command: 'docker compose down'
+
+  build:
+    command: 'docker compose build'
