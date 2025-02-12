@@ -24,10 +24,10 @@ interface MissionFormValues {
     target_type: string;
     
     // Flight Parameters
-    altitude: number;
-    overlap_percent: number;
-    sidelap_percent: number;
-    ground_resolution: number;
+    altitude: string;
+    overlap_percent: string;
+    sidelap_percent: string;
+    ground_resolution: string;
     
     // Capture Settings
     exposure_time: string;
@@ -76,10 +76,10 @@ export function CreateMission() {
           target_type: values.metadata.target_type || '',
           
           // Flight Parameters
-          altitude: values.metadata.altitude || 0,
-          overlap_percent: values.metadata.overlap_percent || 0,
-          sidelap_percent: values.metadata.sidelap_percent || 0,
-          ground_resolution: values.metadata.ground_resolution || 0,
+          altitude: values.metadata.altitude || '',
+          overlap_percent: values.metadata.overlap_percent || '',
+          sidelap_percent: values.metadata.sidelap_percent || '',
+          ground_resolution: values.metadata.ground_resolution || '',
           
           // Capture Settings
           exposure_time: values.metadata.exposure_time || '',
@@ -134,10 +134,10 @@ export function CreateMission() {
         target_type: '',
         
         // Flight Parameters
-        altitude: 100,
-        overlap_percent: 75,
-        sidelap_percent: 60,
-        ground_resolution: 2.5,
+        altitude: '100',
+        overlap_percent: '75',
+        sidelap_percent: '60',
+        ground_resolution: '2.5',
         
         // Capture Settings
         exposure_time: '',
@@ -299,38 +299,30 @@ export function CreateMission() {
               <Text fw={500} size="lg">Flight Parameters</Text>
               <Grid>
                 <Grid.Col span={6}>
-                  <NumberInput
+                  <TextInput
                     label="Flight Altitude (m)"
                     placeholder="100"
-                    min={0}
-                    max={500}
                     {...form.getInputProps('metadata.altitude')}
                   />
                 </Grid.Col>
                 <Grid.Col span={6}>
-                  <NumberInput
+                  <TextInput
                     label="Ground Resolution (cm/px)"
                     placeholder="2.5"
-                    min={0}
-                    precision={2}
                     {...form.getInputProps('metadata.ground_resolution')}
                   />
                 </Grid.Col>
                 <Grid.Col span={6}>
-                  <NumberInput
+                  <TextInput
                     label="Forward Overlap (%)"
                     placeholder="75"
-                    min={0}
-                    max={100}
                     {...form.getInputProps('metadata.overlap_percent')}
                   />
                 </Grid.Col>
                 <Grid.Col span={6}>
-                  <NumberInput
+                  <TextInput
                     label="Side Overlap (%)"
                     placeholder="60"
-                    min={0}
-                    max={100}
                     {...form.getInputProps('metadata.sidelap_percent')}
                   />
                 </Grid.Col>

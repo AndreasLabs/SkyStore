@@ -62,7 +62,7 @@ export interface Asset {
 }
 
 // API Configuration
-const API_URL = 'http://localhost:3000';
+const API_URL = 'http://localhost:4000';
 
 // Fetch wrapper with error handling and type safety
 async function apiFetch<T>(

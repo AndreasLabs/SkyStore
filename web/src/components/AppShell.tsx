@@ -1,13 +1,10 @@
 import React from 'react';
-import { AppShell as MantineAppShell, Group } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { AppShell as MantineAppShell } from '@mantine/core';
 import { TopNavbar } from './TopNavbar';
 import { Sidebar } from './Sidebar';
 import { Outlet } from 'react-router-dom';
 
 export function AppShell() {
-  const [opened, { toggle }] = useDisclosure();
-
   return (
     <MantineAppShell
       header={{ height: 60 }}
