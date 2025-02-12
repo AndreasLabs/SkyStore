@@ -4,8 +4,7 @@ import { IconUpload, IconPhoto, IconInfoCircle } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { AssetGrid } from '../components/AssetGrid';
-import { useMissions } from '../api/hooks';
-import { useAssets, useUploadAsset, useGetThumbnailUrl } from '../api/hooks';
+import { useMissions, useAssets, useUploadAsset, useGetThumbnailUrl } from '../api/hooks';
 
 export function MissionAssets() {
   const navigate = useNavigate();

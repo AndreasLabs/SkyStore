@@ -4,7 +4,6 @@ import { IconPlus, IconBuilding } from '@tabler/icons-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useOrganizations } from '../api/hooks';
 import { useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '../api/hooks/queryKeys';
 
 export function SelectOrganization() {
   const navigate = useNavigate();
@@ -21,31 +20,17 @@ export function SelectOrganization() {
 
   // Clear cache when mounting this component
   React.useEffect(() => {
-    // Only clear cache if we're exactly on the organization selection page
     if (location.pathname === '/org') {
-      // Clear URL state and cache in one go
-      queryClient.removeQueries({ queryKey: queryKeys.projects.root });
-      queryClient.removeQueries({ queryKey: queryKeys.missions.root });
-      queryClient.removeQueries({ queryKey: queryKeys.assets.root });
+      queryClient.clear();
     }
   }, [location.pathname, queryClient]);
 
   const handleSelectOrganization = React.useCallback((orgId: string) => {
-    // Skip if already on this organization's page
     if (location.pathname === `/org/${orgId}`) return;
-
-    // Clear dependent data and navigate in one go
-    queryClient.removeQueries({ 
-      predicate: (query) => {
-        const queryKey = query.queryKey[0];
-        return queryKey === 'projects' || queryKey === 'missions' || queryKey === 'assets';
-      }
-    });
-    
+    queryClient.clear();
     navigate(`/org/${orgId}`, { replace: true });
-  }, [navigate, queryClient]);
+  }, [navigate, queryClient, location.pathname]);
 
-  // Prevent rendering if not on the organization selection page
   if (!location.pathname.startsWith('/org') || location.pathname.length > 4) {
     return null;
   }
@@ -143,4 +128,4 @@ export function SelectOrganization() {
       </Stack>
     </Container>
   );
-} 
+}

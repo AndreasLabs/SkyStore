@@ -7,8 +7,7 @@ import { useForm } from '@mantine/form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ProfileMenu } from './ProfileMenu';
 import { Project, Organization } from '../api/client';
-import { useOrganizations } from '../api/hooks/useOrganizations';
-import { useProjects, useCreateProject } from '../api/hooks/useProjects';
+import { useOrganizations, useProjects, useCreateProject } from '../api/hooks';
 
 interface CreateProjectForm {
   name: string;

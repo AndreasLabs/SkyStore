@@ -9,9 +9,7 @@ import {
   IconPhoto,
   IconSettings,
 } from '@tabler/icons-react';
-import { useOrganization } from '../api/hooks/useOrganizations';
-import { useProject } from '../api/hooks/useProjects';
-import { useMission } from '../api/hooks/useMissions';
+import { useOrganization, useProject, useMission } from '../api/hooks';
 
 export function Sidebar() {
   const navigate = useNavigate();
@@ -19,8 +17,8 @@ export function Sidebar() {
   const { organization, project, mission } = useParams();
 
   // Fetch current item details
-  const { data: orgData } = useOrganization(organization || undefined);
-  const { data: projectData } = useProject(organization || undefined, project || undefined);
+  const { data: orgData } = useOrganization(organization || '');
+  const { data: projectData } = useProject(organization || '', project || '');
   const { data: missionData } = useMission(organization || '', project || '', mission || '');
 
   const isActive = (path: string) => location.pathname.startsWith(path);
