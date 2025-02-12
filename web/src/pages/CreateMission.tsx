@@ -1,9 +1,9 @@
 import React from 'react';
-import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { TextInput, Button, Paper, Title, Container, Stack } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
+import { useMutation } from '@tanstack/react-query';
 import { apiClient } from '../api/client';
 
 interface MissionFormValues {
@@ -22,9 +22,48 @@ interface MissionFormValues {
 }
 
 export function CreateMission() {
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { organization, project } = useParams();
+
+  const createMissionMutation = useMutation({
+    mutationFn: async (values: MissionFormValues) => {
+      if (!organization || !project) {
+        throw new Error('No organization or project selected');
+      }
+
+      return apiClient.createMission({
+        organization,
+        project,
+        mission: values.mission,
+        name: values.name,
+        location: values.location || '',
+        date: values.date || new Date().toISOString(),
+        metadata: {
+          telescope: values.metadata.telescope || '',
+          target: values.metadata.target || '',
+          exposure_time: values.metadata.exposure_time || '',
+          weather_conditions: values.metadata.weather_conditions || '',
+          observer: values.metadata.observer || '',
+          priority: values.metadata.priority || 'medium',
+        },
+      });
+    },
+    onSuccess: (_, variables) => {
+      notifications.show({
+        title: 'Success',
+        message: 'Mission created successfully',
+        color: 'green',
+      });
+      navigate(`/org/${organization}/project/${project}/mission/${variables.mission}`);
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error instanceof Error ? error.message : 'Failed to create mission',
+        color: 'red',
+      });
+    },
+  });
 
   const form = useForm<MissionFormValues>({
     initialValues: {
@@ -42,49 +81,8 @@ export function CreateMission() {
     },
   });
 
-  const handleSubmit = async (values: MissionFormValues) => {
-    if (!organization || !project) {
-      notifications.show({
-        title: 'Error',
-        message: 'No organization or project selected',
-        color: 'red',
-      });
-      return;
-    }
-
-    try {
-      setLoading(true);
-      await apiClient.createMission({
-        organization,
-        project,
-        mission: values.mission,
-        name: values.name,
-        location: values.location || '',
-        date: values.date || new Date().toISOString(),
-        metadata: {
-          telescope: values.metadata.telescope || '',
-          target: values.metadata.target || '',
-          exposure_time: values.metadata.exposure_time || '',
-          weather_conditions: values.metadata.weather_conditions || '',
-          observer: values.metadata.observer || '',
-          priority: values.metadata.priority || 'medium',
-        },
-      });
-      notifications.show({
-        title: 'Success',
-        message: 'Mission created successfully',
-        color: 'green',
-      });
-      navigate(`/org/${organization}/project/${project}/mission/${values.mission}`);
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to create mission',
-        color: 'red',
-      });
-    } finally {
-      setLoading(false);
-    }
+  const handleSubmit = (values: MissionFormValues) => {
+    createMissionMutation.mutate(values);
   };
 
   return (
@@ -107,7 +105,10 @@ export function CreateMission() {
               description="Display name for your mission"
               {...form.getInputProps('name')}
             />
-            <Button type="submit" loading={loading}>
+            <Button 
+              type="submit" 
+              loading={createMissionMutation.isPending}
+            >
               Create Mission
             </Button>
           </Stack>

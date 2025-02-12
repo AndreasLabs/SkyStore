@@ -1,46 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Container, Grid, Card, Text, Button, Group, Stack, Loader, Center } from '@mantine/core';
 import { IconPlus, IconRocket } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { apiClient, Mission } from '../api/client';
-import { notifications } from '@mantine/notifications';
+import { useMissions } from '../api/hooks';
 
 export function ProjectDashboard() {
   const navigate = useNavigate();
   const { organization, project } = useParams();
-  const [missions, setMissions] = useState<Mission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { 
+    data: missions = [], 
+    isLoading, 
+    error,
+    refetch 
+  } = useMissions(organization || '', project || '');
 
-  useEffect(() => {
-    if (organization && project) {
-      loadMissions();
-    }
-  }, [organization, project]);
-
-  const loadMissions = async () => {
-    if (!organization || !project) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await apiClient.listMissions(organization, project);
-      console.log('Loaded missions:', data); // Debug log
-      setMissions(data || []);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to load missions';
-      setError(message);
-      notifications.show({
-        title: 'Error',
-        message,
-        color: 'red',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Center h="100%">
         <Loader size="xl" />
@@ -55,10 +29,10 @@ export function ProjectDashboard() {
           <Stack align="center" gap="md">
             <IconRocket size={48} opacity={0.5} color="red" />
             <Text ta="center" size="lg" fw={500} c="red">Error Loading Missions</Text>
-            <Text ta="center" c="dimmed">{error}</Text>
+            <Text ta="center" c="dimmed">{error instanceof Error ? error.message : 'Failed to load missions'}</Text>
             <Button
               variant="light"
-              onClick={() => loadMissions()}
+              onClick={() => refetch()}
             >
               Retry
             </Button>

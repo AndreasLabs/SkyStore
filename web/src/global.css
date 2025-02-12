@@ -1,0 +1,66 @@
+@keyframes neon-glow {
+  0% { text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #0ff, 0 0 20px #0ff; }
+  100% { text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #0ff, 0 0 40px #0ff; }
+}
+
+.glass-container {
+  background: rgba(16, 18, 27, 0.4) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.125);
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(0, 255, 255, 0.1) 0%,
+      rgba(0, 68, 68, 0.2) 100%
+    );
+    z-index: -1;
+    border-radius: inherit;
+  }
+}
+
+.neon-text {
+  animation: neon-glow 1.5s ease-in-out infinite alternate;
+  color: #0ff !important;
+}
+
+.mantine-Paper-root {
+  @extend .glass-container;
+  padding: 2rem;
+}
+
+.mantine-Button-root {
+  background: rgba(0, 255, 255, 0.15) !important;
+  border: 1px solid #0ff !important;
+  color: #0ff !important;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: rgba(0, 255, 255, 0.3) !important;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+  }
+}
+
+.mantine-Input-input {
+  background: rgba(16, 18, 27, 0.3) !important;
+  border: 1px solid rgba(0, 255, 255, 0.3) !important;
+  color: #0ff !important;
+  
+  &::placeholder {
+    color: rgba(0, 255, 255, 0.5) !important;
+  }
+}
+
+.mantine-Title-root {
+  @extend .neon-text;
+  font-family: 'Courier New', monospace !important;
+  text-transform: uppercase;
+} 

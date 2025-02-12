@@ -9,6 +9,8 @@ project:
 tasks:
   up:
     script: 'docker compose up -d minio && sleep 3'
+    options:
+      cache: false
 
   down:
     command: 'docker compose down minio'

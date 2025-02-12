@@ -1,9 +1,9 @@
 import React from 'react';
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TextInput, Textarea, Button, Paper, Title, Container, Stack, Text } from '@mantine/core';
+import { TextInput, Textarea, Button, Paper, Title, Container, Stack } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
+import { useMutation } from '@tanstack/react-query';
 import { apiClient } from '../api/client';
 
 interface OrganizationFormValues {
@@ -14,8 +14,32 @@ interface OrganizationFormValues {
 }
 
 export function CreateOrganization() {
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const createOrganizationMutation = useMutation({
+    mutationFn: async (values: OrganizationFormValues) => {
+      return apiClient.createOrganization(values.organization, {
+        name: values.name,
+        description: values.description,
+        metadata: values.metadata,
+      });
+    },
+    onSuccess: (_, variables) => {
+      notifications.show({
+        title: 'Success',
+        message: 'Organization created successfully',
+        color: 'green',
+      });
+      navigate(`/org/${variables.organization}`);
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error instanceof Error ? error.message : 'Failed to create organization',
+        color: 'red',
+      });
+    },
+  });
 
   const form = useForm<OrganizationFormValues>({
     initialValues: {
@@ -35,29 +59,8 @@ export function CreateOrganization() {
     },
   });
 
-  const handleSubmit = async (values: OrganizationFormValues) => {
-    try {
-      setLoading(true);
-      await apiClient.createOrganization(values.organization, {
-        name: values.name,
-        description: values.description,
-        metadata: values.metadata,
-      });
-      notifications.show({
-        title: 'Success',
-        message: 'Organization created successfully',
-        color: 'green',
-      });
-      navigate(`/org/${values.organization}`);
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to create organization',
-        color: 'red',
-      });
-    } finally {
-      setLoading(false);
-    }
+  const handleSubmit = (values: OrganizationFormValues) => {
+    createOrganizationMutation.mutate(values);
   };
 
   return (
@@ -88,7 +91,10 @@ export function CreateOrganization() {
               minRows={3}
               {...form.getInputProps('description')}
             />
-            <Button type="submit" loading={loading}>
+            <Button 
+              type="submit" 
+              loading={createOrganizationMutation.isPending}
+            >
               Create Organization
             </Button>
           </Stack>

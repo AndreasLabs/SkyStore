@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Title, Text, Group, Stack, Card, Button, Loader, Center, FileButton, Progress, Grid } from '@mantine/core';
-import { IconUpload, IconInfoCircle, IconPhoto } from '@tabler/icons-react';
+import { Container, Title, Text, Group, Stack, Card, Button, Loader, Center, FileButton, Progress, Grid, Badge, Divider } from '@mantine/core';
+import { IconUpload, IconInfoCircle, IconPhoto, IconCalendar, IconMap, IconTelescope, IconTarget, IconClock, IconCloud, IconUser, IconFlag } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiClient, Mission, Asset } from '../api/client';
 import { notifications } from '@mantine/notifications';
@@ -126,9 +126,9 @@ export function MissionDashboard() {
     <Container size="lg" py="xl">
       <Stack gap="xl">
         <Group justify="space-between" align="flex-start">
-          <Stack gap={0}>
+          <Stack gap={4}>
             <Title order={2}>{missionData.name}</Title>
-            <Text c="dimmed">Mission details and assets</Text>
+            <Text c="dimmed" size="sm">Mission details and assets</Text>
           </Stack>
           <FileButton onChange={handleFileUpload} accept="image/*,application/fits" multiple>
             {(props) => (
@@ -136,6 +136,7 @@ export function MissionDashboard() {
                 {...props}
                 leftSection={<IconUpload size={16} />}
                 loading={uploading}
+                variant="filled"
               >
                 Upload Assets
               </Button>
@@ -144,52 +145,103 @@ export function MissionDashboard() {
         </Group>
 
         {uploading && (
-          <Group align="center" gap="xs">
-            <Progress
-              value={uploadProgress}
-              size="xl"
-              radius="xl"
-              style={{ flex: 1 }}
-            />
-            <Text size="sm" w={50} ta="right">{Math.round(uploadProgress)}%</Text>
-          </Group>
+          <Card withBorder>
+            <Stack gap="xs">
+              <Text size="sm" fw={500}>Uploading Assets...</Text>
+              <Group align="center" gap="xs">
+                <Progress
+                  value={uploadProgress}
+                  size="xl"
+                  radius="xl"
+                  style={{ flex: 1 }}
+                />
+                <Text size="sm" w={50} ta="right">{Math.round(uploadProgress)}%</Text>
+              </Group>
+            </Stack>
+          </Card>
         )}
 
         <Grid>
           <Grid.Col span={{ base: 12, md: 4 }}>
             <Card withBorder>
-              <Stack gap="md">
-                <Group>
-                  <Text fw={500}>Location:</Text>
-                  <Text>{missionData.location || 'Not specified'}</Text>
+              <Stack gap="lg">
+                <Group wrap="nowrap">
+                  <IconCalendar size={20} style={{ flexShrink: 0 }} />
+                  <Stack gap={0}>
+                    <Text fw={500}>Date</Text>
+                    <Text size="sm" c="dimmed">
+                      {missionData.date ? new Date(missionData.date).toLocaleDateString() : 'Not specified'}
+                    </Text>
+                  </Stack>
                 </Group>
-                <Group>
-                  <Text fw={500}>Date:</Text>
-                  <Text>{missionData.date ? new Date(missionData.date).toLocaleDateString() : 'Not specified'}</Text>
+
+                <Group wrap="nowrap">
+                  <IconMap size={20} style={{ flexShrink: 0 }} />
+                  <Stack gap={0}>
+                    <Text fw={500}>Location</Text>
+                    <Text size="sm" c="dimmed">{missionData.location || 'Not specified'}</Text>
+                  </Stack>
                 </Group>
-                <Group>
-                  <Text fw={500}>Telescope:</Text>
-                  <Text>{missionData.metadata.telescope || 'Not specified'}</Text>
+
+                <Divider />
+
+                <Group wrap="nowrap">
+                  <IconTelescope size={20} style={{ flexShrink: 0 }} />
+                  <Stack gap={0}>
+                    <Text fw={500}>Telescope</Text>
+                    <Text size="sm" c="dimmed">{missionData.metadata.telescope || 'Not specified'}</Text>
+                  </Stack>
                 </Group>
-                <Group>
-                  <Text fw={500}>Target:</Text>
-                  <Text>{missionData.metadata.target || 'Not specified'}</Text>
+
+                <Group wrap="nowrap">
+                  <IconTarget size={20} style={{ flexShrink: 0 }} />
+                  <Stack gap={0}>
+                    <Text fw={500}>Target</Text>
+                    <Text size="sm" c="dimmed">{missionData.metadata.target || 'Not specified'}</Text>
+                  </Stack>
                 </Group>
-                <Group>
-                  <Text fw={500}>Exposure Time:</Text>
-                  <Text>{missionData.metadata.exposure_time || 'Not specified'}</Text>
+
+                <Group wrap="nowrap">
+                  <IconClock size={20} style={{ flexShrink: 0 }} />
+                  <Stack gap={0}>
+                    <Text fw={500}>Exposure Time</Text>
+                    <Text size="sm" c="dimmed">{missionData.metadata.exposure_time || 'Not specified'}</Text>
+                  </Stack>
                 </Group>
-                <Group>
-                  <Text fw={500}>Weather Conditions:</Text>
-                  <Text>{missionData.metadata.weather_conditions || 'Not specified'}</Text>
+
+                <Divider />
+
+                <Group wrap="nowrap">
+                  <IconCloud size={20} style={{ flexShrink: 0 }} />
+                  <Stack gap={0}>
+                    <Text fw={500}>Weather Conditions</Text>
+                    <Text size="sm" c="dimmed">{missionData.metadata.weather_conditions || 'Not specified'}</Text>
+                  </Stack>
                 </Group>
-                <Group>
-                  <Text fw={500}>Observer:</Text>
-                  <Text>{missionData.metadata.observer || 'Not specified'}</Text>
+
+                <Group wrap="nowrap">
+                  <IconUser size={20} style={{ flexShrink: 0 }} />
+                  <Stack gap={0}>
+                    <Text fw={500}>Observer</Text>
+                    <Text size="sm" c="dimmed">{missionData.metadata.observer || 'Not specified'}</Text>
+                  </Stack>
                 </Group>
-                <Group>
-                  <Text fw={500}>Priority:</Text>
-                  <Text style={{ textTransform: 'capitalize' }}>{missionData.metadata.priority || 'Not specified'}</Text>
+
+                <Group wrap="nowrap">
+                  <IconFlag size={20} style={{ flexShrink: 0 }} />
+                  <Stack gap={0}>
+                    <Text fw={500}>Priority</Text>
+                    <Badge 
+                      variant="light"
+                      color={
+                        missionData.metadata.priority === 'high' ? 'red' :
+                        missionData.metadata.priority === 'medium' ? 'yellow' :
+                        'blue'
+                      }
+                    >
+                      {missionData.metadata.priority || 'Not specified'}
+                    </Badge>
+                  </Stack>
                 </Group>
               </Stack>
             </Card>
@@ -197,7 +249,7 @@ export function MissionDashboard() {
 
           <Grid.Col span={{ base: 12, md: 8 }}>
             {assets.length === 0 ? (
-              <Card withBorder p="xl">
+              <Card withBorder p="xl" h="100%">
                 <Stack align="center" gap="md">
                   <IconPhoto size={48} opacity={0.5} />
                   <Text ta="center" size="lg" fw={500}>No Assets Yet</Text>

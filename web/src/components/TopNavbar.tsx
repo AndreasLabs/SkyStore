@@ -1,12 +1,14 @@
 import React from 'react';
-import { Group, Menu, Text, UnstyledButton, rem, Loader, Modal, TextInput, Button, Stack, Divider } from '@mantine/core';
+import { Group, Menu, Text, UnstyledButton, rem, Loader, Modal, TextInput, Button, Stack } from '@mantine/core';
 import { IconChevronDown, IconRocket, IconPlus, IconBuilding } from '@tabler/icons-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { notifications } from '@mantine/notifications';
 import { useForm } from '@mantine/form';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ProfileMenu } from './ProfileMenu';
-import { apiClient, Project, Organization } from '../api/client';
+import { Project, Organization } from '../api/client';
+import { useOrganizations } from '../api/hooks/useOrganizations';
+import { useProjects, useCreateProject } from '../api/hooks/useProjects';
 
 interface CreateProjectForm {
   name: string;
@@ -16,16 +18,8 @@ interface CreateProjectForm {
 
 export function TopNavbar() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { organization: urlOrg, project: urlProject } = useParams();
-  const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [currentProject, setCurrentProject] = useState<Project | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
 
   const form = useForm<CreateProjectForm>({
     initialValues: {
@@ -44,95 +38,23 @@ export function TopNavbar() {
     },
   });
 
-  useEffect(() => {
-    loadOrganizations();
-  }, []);
+  const { data: organizations = [], isLoading: orgsLoading, error: orgsError } = useOrganizations();
+  const currentOrganization = organizations.find(o => o.key === urlOrg);
+  
+  const { data: projects = [], isLoading: projectsLoading, error: projectsError } = useProjects(currentOrganization?.key);
+  const currentProject = projects.find(p => p.key === urlProject);
 
-  useEffect(() => {
-    if (organizations.length > 0 && urlOrg) {
-      const org = organizations.find(o => o.name === urlOrg);
-      if (org) {
-        setCurrentOrganization(org);
-      }
-    }
-  }, [organizations, urlOrg]);
-
-  useEffect(() => {
-    if (currentOrganization) {
-      loadProjects();
-      // Update URL if it doesn't match current organization
-      if (!location.pathname.includes(`/org/${currentOrganization.name}`)) {
-        navigate(`/org/${currentOrganization.name}`);
-      }
-    }
-  }, [currentOrganization]);
-
-  useEffect(() => {
-    if (projects.length > 0 && urlProject) {
-      const project = projects.find(p => p.name === urlProject);
-      if (project) {
-        setCurrentProject(project);
-      }
-    }
-  }, [projects, urlProject]);
-
-  useEffect(() => {
-    if (currentProject && currentOrganization) {
-      const expectedPath = `/org/${currentOrganization.name}/project/${currentProject.name}`;
-      if (!location.pathname.startsWith(expectedPath)) {
-        navigate(expectedPath);
-      }
-    }
-  }, [currentProject, currentOrganization]);
-
-  const loadOrganizations = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await apiClient.listOrganizations();
-      setOrganizations(data || []);
-      
-      // Only set default organization if no organization in URL
-      if (data && data.length > 0 && !urlOrg) {
-        setCurrentOrganization(data[0]);
-      }
-    } catch (error) {
-      const message = 'Failed to load organizations';
-      setError(message);
-      notifications.show({
-        title: 'Error',
-        message,
-        color: 'red',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const createProjectMutation = useCreateProject();
 
   const handleOrganizationSelect = (org: Organization) => {
-    setCurrentOrganization(org);
-    setCurrentProject(null);
-    navigate(`/org/${org.name}`);
+    if (org.name !== urlOrg) {
+      navigate(`/org/${org.key}`, { replace: true });
+    }
   };
 
-  const loadProjects = async () => {
-    if (!currentOrganization) return;
-    
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await apiClient.listProjects(currentOrganization.name);
-      setProjects(data || []);
-    } catch (error) {
-      const message = 'Failed to load projects';
-      setError(message);
-      notifications.show({
-        title: 'Error',
-        message,
-        color: 'red',
-      });
-    } finally {
-      setLoading(false);
+  const handleProjectSelect = (project: Project) => {
+    if (currentOrganization && project.key !== urlProject) {
+      navigate(`/org/${currentOrganization.key}/project/${project.key}`, { replace: true });
     }
   };
 
@@ -146,47 +68,32 @@ export function TopNavbar() {
       return;
     }
 
-    try {
-      setCreating(true);
-
-      // Create the project under the current organization
-      await apiClient.createProject(currentOrganization.name, values.project, {
-        name: values.name,
-        description: values.description,
-        metadata: {},
-      });
-
-      notifications.show({
-        title: 'Success',
-        message: 'Project created successfully',
-        color: 'green',
-      });
-
-      // Reset form and close modal
-      form.reset();
-      setCreateModalOpen(false);
-
-      // Navigate to the new project
-      navigate(`/org/${currentOrganization.name}/project/${values.project}`);
-
-      // Reload projects list
-      await loadProjects();
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to create project',
-        color: 'red',
-      });
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const handleProjectSelect = (project: Project) => {
-    if (!currentOrganization) return;
-    
-    setCurrentProject(project);
-    navigate(`/org/${currentOrganization.name}/project/${project.name}`);
+    createProjectMutation.mutate(
+      {
+        organization: currentOrganization.name,
+        id: values.project,
+        data: {
+          key: values.project,
+          name: values.name,
+          description: values.description,
+          metadata: {}
+        }
+      },
+      {
+        onSuccess: () => {
+          form.reset();
+          setCreateModalOpen(false);
+          navigate(`/org/${currentOrganization.name}/project/${values.project}`);
+        },
+        onError: (error) => {
+          notifications.show({
+            title: 'Error', 
+            message: error instanceof Error ? error.message : 'Failed to create project',
+            color: 'red',
+          });
+        }
+      }
+    );
   };
 
   return (
@@ -211,36 +118,21 @@ export function TopNavbar() {
 
             <Menu.Dropdown>
               <Menu.Label>Organizations</Menu.Label>
-              {loading ? (
-                <Menu.Item disabled>
-                  <Group justify="center">
-                    <Loader size="sm" />
-                  </Group>
-                </Menu.Item>
-              ) : error ? (
-                <Menu.Item disabled color="red">
-                  <Text size="sm" c="red">Failed to load organizations</Text>
-                </Menu.Item>
+              {orgsLoading ? (
+                <Menu.Item disabled><Group justify="center"><Loader size="sm" /></Group></Menu.Item>
+              ) : orgsError ? (
+                <Menu.Item disabled color="red"><Text size="sm" c="red">Failed to load organizations</Text></Menu.Item>
               ) : organizations.length === 0 ? (
-                <Menu.Item disabled>
-                  <Text size="sm" c="dimmed">No organizations found</Text>
-                </Menu.Item>
+                <Menu.Item disabled><Text size="sm" c="dimmed">No organizations found</Text></Menu.Item>
               ) : (
                 organizations.map((org) => (
-                  <Menu.Item
-                    key={org.name}
-                    onClick={() => handleOrganizationSelect(org)}
-                  >
+                  <Menu.Item key={org.name} onClick={() => handleOrganizationSelect(org)}>
                     <Text size="sm">{org.name}</Text>
-                    <Text size="xs" c="dimmed">{org.description}</Text>
                   </Menu.Item>
                 ))
               )}
               <Menu.Divider />
-              <Menu.Item
-                onClick={() => navigate('/org/create')}
-                leftSection={<IconPlus style={{ width: rem(16), height: rem(16) }} />}
-              >
+              <Menu.Item onClick={() => navigate('/org/create')} leftSection={<IconPlus style={{ width: rem(16), height: rem(16) }} />}>
                 Create Organization
               </Menu.Item>
             </Menu.Dropdown>
@@ -251,9 +143,7 @@ export function TopNavbar() {
               <Menu.Target>
                 <UnstyledButton>
                   <Group gap={3}>
-                    <Text size="sm" fw={500}>
-                      {currentProject?.name || 'Select Project'}
-                    </Text>
+                    <Text size="sm" fw={500}>{currentProject?.name || 'Select Project'}</Text>
                     <IconChevronDown style={{ width: rem(16), height: rem(16) }} />
                   </Group>
                 </UnstyledButton>
@@ -261,20 +151,12 @@ export function TopNavbar() {
 
               <Menu.Dropdown>
                 <Menu.Label>Projects</Menu.Label>
-                {loading ? (
-                  <Menu.Item disabled>
-                    <Group justify="center">
-                      <Loader size="sm" />
-                    </Group>
-                  </Menu.Item>
-                ) : error ? (
-                  <Menu.Item disabled color="red">
-                    <Text size="sm" c="red">Failed to load projects</Text>
-                  </Menu.Item>
+                {projectsLoading ? (
+                  <Menu.Item disabled><Group justify="center"><Loader size="sm" /></Group></Menu.Item>
+                ) : projectsError ? (
+                  <Menu.Item disabled color="red"><Text size="sm" c="red">Failed to load projects</Text></Menu.Item>
                 ) : projects.length === 0 ? (
-                  <Menu.Item disabled>
-                    <Text size="sm" c="dimmed">No projects found</Text>
-                  </Menu.Item>
+                  <Menu.Item disabled><Text size="sm" c="dimmed">No projects found</Text></Menu.Item>
                 ) : (
                   projects.map((project) => (
                     <Menu.Item
@@ -283,15 +165,11 @@ export function TopNavbar() {
                       color={currentProject?.name === project.name ? 'blue' : undefined}
                     >
                       <Text size="sm">{project.name}</Text>
-                      <Text size="xs" c="dimmed">{project.description}</Text>
                     </Menu.Item>
                   ))
                 )}
                 <Menu.Divider />
-                <Menu.Item
-                  leftSection={<IconPlus style={{ width: rem(16), height: rem(16) }} />}
-                  onClick={() => setCreateModalOpen(true)}
-                >
+                <Menu.Item leftSection={<IconPlus style={{ width: rem(16), height: rem(16) }} />} onClick={() => setCreateModalOpen(true)}>
                   Create Project
                 </Menu.Item>
               </Menu.Dropdown>
@@ -302,17 +180,12 @@ export function TopNavbar() {
         <ProfileMenu />
       </Group>
 
-      <Modal
-        opened={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
-        title="Create New Project"
-        size="md"
-      >
+      <Modal opened={createModalOpen} onClose={() => setCreateModalOpen(false)} title="Create New Project" size="md">
         <form onSubmit={form.onSubmit(handleCreateProject)}>
           <Stack>
             <TextInput
               label="Project ID"
-              placeholder="my-project"
+              placeholder="my-project" 
               description="Unique identifier for your project (lowercase letters, numbers, and hyphens only)"
               required
               {...form.getInputProps('project')}
@@ -331,12 +204,10 @@ export function TopNavbar() {
               required
               {...form.getInputProps('description')}
             />
-            <Button type="submit" loading={creating}>
-              Create Project
-            </Button>
+            <Button type="submit" loading={createProjectMutation.isPending}>Create Project</Button>
           </Stack>
         </form>
       </Modal>
     </>
   );
-} 
+}

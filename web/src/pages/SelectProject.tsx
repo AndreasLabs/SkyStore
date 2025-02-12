@@ -1,44 +1,73 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Container, Grid, Card, Text, Button, Group, Stack, Loader, Center } from '@mantine/core';
 import { IconPlus, IconFolder } from '@tabler/icons-react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { apiClient, Project } from '../api/client';
-import { notifications } from '@mantine/notifications';
+import { useNavigate, useParams, Navigate } from 'react-router-dom';
+import { useProjects, useOrganization } from '../api/hooks';
+import { useQueryClient } from '@tanstack/react-query';
 
 export function SelectProject() {
   const navigate = useNavigate();
   const { organization } = useParams();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (organization) {
-      loadProjects();
-    }
-  }, [organization]);
+  // If no organization is selected, redirect immediately
+  if (!organization) {
+    return <Navigate to="/org" replace />;
+  }
 
-  const loadProjects = async () => {
-    if (!organization) return;
-    try {
-      setLoading(true);
-      const data = await apiClient.listProjects(organization);
-      setProjects(data || []);
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to load projects',
-        color: 'red',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Fetch organization to validate it exists
+  const { data: org, isLoading: orgLoading, error: orgError } = useOrganization(organization);
 
-  if (loading) {
+  // Fetch projects for the organization
+  const { 
+    data: projects = [], 
+    isLoading: projectsLoading, 
+    error: projectsError,
+    refetch 
+  } = useProjects(organization);
+
+  const isLoading = orgLoading || projectsLoading;
+  const error = orgError || projectsError;
+
+  // If organization doesn't exist, redirect to org selection
+  if (!orgLoading && !org) {
+    return <Navigate to="/org" replace />;
+  }
+
+  if (isLoading) {
     return (
       <Center h="100%">
         <Loader size="xl" />
       </Center>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container size="lg" py="xl">
+        <Card withBorder p="xl">
+          <Stack align="center" gap="md">
+            <IconFolder size={48} opacity={0.5} color="red" />
+            <Text ta="center" size="lg" fw={500} c="red">Error Loading Projects</Text>
+            <Text ta="center" c="dimmed">{error instanceof Error ? error.message : 'Failed to load projects'}</Text>
+            <Group>
+              <Button
+                variant="light"
+                onClick={() => refetch()}
+              >
+                Retry
+              </Button>
+              <Button
+                variant="subtle"
+                color="red"
+                onClick={() => navigate('/org')}
+              >
+                Change Organization
+              </Button>
+            </Group>
+          </Stack>
+        </Card>
+      </Container>
     );
   }
 
@@ -50,12 +79,20 @@ export function SelectProject() {
             <Text size="xl" fw={700}>Select Project</Text>
             <Text c="dimmed">Select an existing project or create a new one to get started</Text>
           </Stack>
-          <Button
-            leftSection={<IconPlus size={16} />}
-            onClick={() => navigate(`/org/${organization}/project/create`)}
-          >
-            Create Project
-          </Button>
+          <Group>
+            <Button
+              variant="subtle"
+              onClick={() => navigate('/org')}
+            >
+              Change Organization
+            </Button>
+            <Button
+              leftSection={<IconPlus size={16} />}
+              onClick={() => navigate(`/org/${organization}/project/create`)}
+            >
+              Create Project
+            </Button>
+          </Group>
         </Group>
 
         {projects.length === 0 ? (
@@ -78,7 +115,7 @@ export function SelectProject() {
         ) : (
           <Grid>
             {projects.map((project) => (
-              <Grid.Col key={project.name} span={{ base: 12, sm: 6, md: 4 }}>
+              <Grid.Col key={project.id} span={{ base: 12, sm: 6, md: 4 }}>
                 <Card withBorder p="lg" radius="md">
                   <Stack gap="md">
                     <Group wrap="nowrap">
@@ -93,7 +130,14 @@ export function SelectProject() {
                     <Button
                       variant="light"
                       fullWidth
-                      onClick={() => navigate(`/org/${organization}/project/${project.name}`)}
+                      onClick={() => {
+                        // Clear missions query cache before navigation
+                        queryClient.removeQueries({ queryKey: ['missions'] });
+                        
+                        // Force clean navigation
+                        window.history.pushState({}, '', `/org/${organization}/project/${project.key}`);
+                        navigate(`/org/${organization}/project/${project.key}`);
+                      }}
                     >
                       Select Project
                     </Button>

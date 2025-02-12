@@ -1,26 +1,23 @@
-import axios from 'axios';
-
-// Create axios instance with default config
-const api = axios.create({
-  baseURL: 'http://localhost:3000',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
+// Types
 export interface Organization {
+  id: string;
+  key: string;
   name: string;
   description: string;
   metadata: Record<string, string>;
 }
 
 export interface Project {
+  id: string;
+  key: string;
   name: string;
   description: string;
   metadata: Record<string, string>;
 }
 
 export interface Mission {
+  id: string;
+  key: string;
   name: string;
   mission: string;
   location: string;
@@ -64,117 +61,133 @@ export interface Asset {
   thumbnailUrl?: string;
 }
 
+// API Configuration
+const API_URL = 'http://localhost:3000';
+
+// Fetch wrapper with error handling and type safety
+async function apiFetch<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const headers = options.body instanceof FormData
+    ? options.headers
+    : {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      };
+
+  const response = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || `HTTP error! status: ${response.status}`);
+  }
+
+  // For endpoints that don't return data
+  if (response.status === 204) {
+    return {} as T;
+  }
+
+  return data.data as T;
+}
+
+// API Client implementation
 export const apiClient = {
   // Organization endpoints
-  createOrganization: async (organization: string, data: Organization) => {
-    return api.post(`/org/${organization}`, data);
-  },
+  createOrganization: (id: string, data: Omit<Organization, 'id'>) =>
+    apiFetch<Organization>(`/org/${id}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 
-  getOrganization: async (organization: string) => {
-    const response = await api.get<{ data: Organization }>(`/org/${organization}`);
-    return response.data.data;
-  },
+  getOrganization: (id: string) =>
+    apiFetch<Organization>(`/org/${id}`),
 
-  listOrganizations: async () => {
-    const response = await api.get<{ data: Organization[] }>('/orgs');
-    return response.data.data;
-  },
+  listOrganizations: () =>
+    apiFetch<Organization[]>('/orgs'),
 
-  updateOrganization: async (organization: string, data: Partial<Organization>) => {
-    const response = await api.patch<{ data: Organization }>(`/org/${organization}`, data);
-    return response.data.data;
-  },
+  updateOrganization: (id: string, data: Partial<Omit<Organization, 'id'>>) =>
+    apiFetch<Organization>(`/org/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
 
-  deleteOrganization: async (organization: string) => {
-    return api.delete(`/org/${organization}`);
-  },
+  deleteOrganization: (id: string) =>
+    apiFetch<void>(`/org/${id}`, { method: 'DELETE' }),
 
   // Project endpoints
-  createProject: async (organization: string, project: string, data: Project) => {
-    return api.post(`/org/${organization}/project/${project}`, data);
-  },
+  createProject: (organization: string, id: string, data: Omit<Project, 'id'>) =>
+    apiFetch<Project>(`/org/${organization}/project/${id}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 
-  getProject: async (organization: string, project: string) => {
-    const response = await api.get<{ data: Project }>(`/org/${organization}/project/${project}`);
-    return response.data.data;
-  },
+  getProject: (organization: string, id: string) =>
+    apiFetch<Project>(`/org/${organization}/project/${id}`),
 
-  listProjects: async (organization: string) => {
-    const response = await api.get<{ data: Project[] }>(`/org/${organization}/projects`);
-    return response.data.data;
-  },
+  listProjects: (organization: string) =>
+    apiFetch<Project[]>(`/org/${organization}/projects`),
 
-  updateProject: async (organization: string, project: string, data: Partial<Project>) => {
-    const response = await api.patch<{ data: Project }>(`/org/${organization}/project/${project}`, data);
-    return response.data.data;
-  },
+  updateProject: (organization: string, id: string, data: Partial<Omit<Project, 'id'>>) =>
+    apiFetch<Project>(`/org/${organization}/project/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
 
-  deleteProject: async (organization: string, project: string) => {
-    return api.delete(`/org/${organization}/project/${project}`);
-  },
+  deleteProject: (organization: string, id: string) =>
+    apiFetch<void>(`/org/${organization}/project/${id}`, { method: 'DELETE' }),
 
   // Mission endpoints
-  createMission: async (payload: CreateMissionPayload) => {
+  createMission: (payload: CreateMissionPayload) => {
     const { organization, project, mission, ...data } = payload;
-    return api.post(
+    return apiFetch<Mission>(
       `/org/${organization}/project/${project}/mission/${mission}`,
-      data
-    );
-  },
-
-  listMissions: async (organization: string, project: string) => {
-    const response = await api.get<{ data: Mission[] }>(
-      `/org/${organization}/project/${project}/missions`
-    );
-    return response.data.data;
-  },
-
-  getMission: async (organization: string, project: string, mission: string) => {
-    const response = await api.get<{ data: Mission }>(
-      `/org/${organization}/project/${project}/mission/${mission}`
-    );
-    return response.data.data;
-  },
-
-  updateMission: async (organization: string, project: string, mission: string, data: Partial<Mission>) => {
-    const response = await api.patch<{ data: Mission }>(
-      `/org/${organization}/project/${project}/mission/${mission}`,
-      data
-    );
-    return response.data.data;
-  },
-
-  // Asset endpoints
-  uploadAsset: async (organization: string, project: string, mission: string, file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    return api.post(
-      `/org/${organization}/project/${project}/mission/${mission}/assets/upload`,
-      formData,
       {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        method: 'POST',
+        body: JSON.stringify(data),
       }
     );
   },
 
-  getMissionAssets: async (organization: string, project: string, mission: string) => {
-    const response = await api.get<{ data: Asset[] }>(
-      `/org/${organization}/project/${project}/mission/${mission}/assets`
+  listMissions: (organization: string, project: string) =>
+    apiFetch<Mission[]>(`/org/${organization}/project/${project}/missions`),
+
+  getMission: (organization: string, project: string, mission: string) =>
+    apiFetch<Mission>(`/org/${organization}/project/${project}/mission/${mission}`),
+
+  updateMission: (organization: string, project: string, mission: string, data: Partial<Mission>) =>
+    apiFetch<Mission>(
+      `/org/${organization}/project/${project}/mission/${mission}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }
+    ),
+
+  // Asset endpoints
+  uploadAsset: (organization: string, project: string, mission: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return apiFetch<Asset>(
+      `/org/${organization}/project/${project}/mission/${mission}/assets/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
     );
-    return response.data.data;
   },
 
-  getAsset: async (organization: string, project: string, mission: string, assetId: string) => {
-    const response = await api.get<{ data: Asset }>(
-      `/org/${organization}/project/${project}/mission/${mission}/assets/${assetId}`
-    );
-    return response.data.data;
-  },
+  getMissionAssets: (organization: string, project: string, mission: string) =>
+    apiFetch<Asset[]>(`/org/${organization}/project/${project}/mission/${mission}/assets`),
 
-  getThumbnailUrl: (organization: string, project: string, mission: string, assetId: string) => {
-    return `${api.defaults.baseURL}/org/${organization}/project/${project}/mission/${mission}/assets/${assetId}/thumbnail`;
-  },
+  getAsset: (organization: string, project: string, mission: string, assetId: string) =>
+    apiFetch<Asset>(`/org/${organization}/project/${project}/mission/${mission}/assets/${assetId}`),
+
+  getThumbnailUrl: (organization: string, project: string, mission: string, assetId: string) =>
+    `${API_URL}/org/${organization}/project/${project}/mission/${mission}/assets/${assetId}/thumbnail`,
 }; 

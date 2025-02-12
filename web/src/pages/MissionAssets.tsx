@@ -1,78 +1,62 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Container, Title, Text, Button, Group, Stack, Card, FileButton, Progress, Select, Loader, Center } from '@mantine/core';
-import { IconUpload, IconPhoto } from '@tabler/icons-react';
+import { IconUpload, IconPhoto, IconInfoCircle } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { apiClient, Asset, Mission } from '../api/client';
 import { notifications } from '@mantine/notifications';
 import { AssetGrid } from '../components/AssetGrid';
+import { useMissions } from '../api/hooks';
+import { useAssets, useUploadAsset, useGetThumbnailUrl } from '../api/hooks';
 
 export function MissionAssets() {
   const navigate = useNavigate();
   const { organization, project } = useParams();
-  const [missions, setMissions] = useState<Mission[]>([]);
-  const [selectedMission, setSelectedMission] = useState<string | null>(null);
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedMission, setSelectedMission] = React.useState<string | null>(null);
 
-  useEffect(() => {
-    if (organization && project) {
-      loadMissions();
+  // Query hooks
+  const { 
+    data: missions = [], 
+    isLoading: missionsLoading,
+    error: missionsError 
+  } = useMissions(organization || '', project || '');
+
+  const {
+    data: assets = [],
+    isLoading: assetsLoading,
+    error: assetsError
+  } = useAssets(
+    organization || '', 
+    project || '', 
+    selectedMission || ''
+  );
+
+  // Mutation hook
+  const { mutateAsync: uploadAsset, isPending: isUploading } = useUploadAsset();
+  const [uploadProgress, setUploadProgress] = React.useState(0);
+
+  // Initialize selected mission
+  React.useEffect(() => {
+    if (missions.length > 0 && !selectedMission) {
+      setSelectedMission(missions[0].mission);
     }
-  }, [organization, project]);
+  }, [missions]);
 
-  useEffect(() => {
-    if (organization && project && selectedMission) {
-      loadAssets();
-    }
-  }, [organization, project, selectedMission]);
-
-  const loadMissions = async () => {
-    if (!organization || !project) return;
-
-    try {
-      const data = await apiClient.listMissions(organization, project);
-      setMissions(data || []);
-      if (data && data.length > 0) {
-        setSelectedMission(data[0].mission);
-      }
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to load missions',
-        color: 'red',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadAssets = async () => {
-    if (!organization || !project || !selectedMission) return;
-
-    try {
-      const data = await apiClient.getMissionAssets(organization, project, selectedMission);
-      setAssets(data || []);
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to load assets',
-        color: 'red',
-      });
-    }
-  };
+  // Get thumbnail URL helper
+  const getThumbnailUrl = useGetThumbnailUrl();
 
   const handleFileUpload = async (files: File[] | null) => {
     if (!files || !organization || !project || !selectedMission) return;
 
     try {
-      setUploading(true);
       setUploadProgress(0);
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        await apiClient.uploadAsset(organization, project, selectedMission, file);
+        await uploadAsset({ 
+          organization, 
+          project, 
+          mission: selectedMission, 
+          file 
+        });
         setUploadProgress(((i + 1) / files.length) * 100);
       }
       
@@ -81,8 +65,6 @@ export function MissionAssets() {
         message: `${files.length} asset${files.length === 1 ? '' : 's'} uploaded successfully`,
         color: 'green',
       });
-
-      await loadAssets();
     } catch (error) {
       notifications.show({
         title: 'Error',
@@ -90,17 +72,28 @@ export function MissionAssets() {
         color: 'red',
       });
     } finally {
-      setUploading(false);
       setUploadProgress(0);
     }
   };
 
-  const getThumbnailUrl = (asset: Asset) => {
-    if (!organization || !project || !selectedMission) return '';
-    return apiClient.getThumbnailUrl(organization, project, selectedMission, asset.id);
-  };
+  // Error states
+  if (missionsError) {
+    return (
+      <Container size="lg" py="xl">
+        <Card withBorder p="xl">
+          <Stack align="center" gap="md">
+            <IconInfoCircle size={48} opacity={0.5} />
+            <Text c="red" size="lg" fw={500}>Failed to load missions</Text>
+            <Text c="dimmed" ta="center">Unable to retrieve mission data. Please try again.</Text>
+            <Button onClick={() => window.location.reload()} variant="light">Retry</Button>
+          </Stack>
+        </Card>
+      </Container>
+    );
+  }
 
-  if (loading) {
+  // Loading state
+  if (missionsLoading) {
     return (
       <Center h="100%">
         <Loader size="xl" />
@@ -112,26 +105,26 @@ export function MissionAssets() {
     <Container size="lg" py="xl">
       <Stack gap="xl">
         <Group justify="space-between" align="flex-start">
-          <Stack gap={0}>
+          <Stack gap={4}>
             <Title order={2}>Mission Assets</Title>
-            <Text c="dimmed">Upload and manage observation data and images</Text>
+            <Text c="dimmed" size="sm">Upload and manage observation data and images</Text>
           </Stack>
           <Group>
             <Select
-              label="Mission"
               placeholder="Select a mission"
               data={missions.map(m => ({ value: m.mission, label: m.name }))}
               value={selectedMission}
               onChange={setSelectedMission}
-              style={{ minWidth: 200 }}
+              style={{ minWidth: 250 }}
             />
             <FileButton onChange={handleFileUpload} accept="image/*,application/fits" multiple>
               {(props) => (
                 <Button
                   {...props}
                   leftSection={<IconUpload size={16} />}
-                  loading={uploading}
+                  loading={isUploading}
                   disabled={!selectedMission}
+                  variant="filled"
                 >
                   Upload Assets
                 </Button>
@@ -140,16 +133,21 @@ export function MissionAssets() {
           </Group>
         </Group>
 
-        {uploading && (
-          <Group align="center" gap="xs">
-            <Progress
-              value={uploadProgress}
-              size="xl"
-              radius="xl"
-              style={{ flex: 1 }}
-            />
-            <Text size="sm" w={50} ta="right">{Math.round(uploadProgress)}%</Text>
-          </Group>
+        {isUploading && (
+          <Card withBorder>
+            <Stack gap="xs">
+              <Text size="sm" fw={500}>Uploading Assets...</Text>
+              <Group align="center" gap="xs">
+                <Progress
+                  value={uploadProgress}
+                  size="xl"
+                  radius="xl"
+                  style={{ flex: 1 }}
+                />
+                <Text size="sm" w={50} ta="right">{Math.round(uploadProgress)}%</Text>
+              </Group>
+            </Stack>
+          </Card>
         )}
 
         {!selectedMission ? (
@@ -160,6 +158,21 @@ export function MissionAssets() {
               <Text ta="center" c="dimmed">
                 Choose a mission to view and manage its assets
               </Text>
+            </Stack>
+          </Card>
+        ) : assetsLoading ? (
+          <Center p="xl">
+            <Loader size="lg" />
+          </Center>
+        ) : assetsError ? (
+          <Card withBorder p="xl">
+            <Stack align="center" gap="md">
+              <IconInfoCircle size={48} opacity={0.5} />
+              <Text c="red" size="lg" fw={500}>Failed to load assets</Text>
+              <Text c="dimmed" ta="center">Unable to retrieve asset data. Please try again.</Text>
+              <Button onClick={() => window.location.reload()} variant="light">
+                Retry
+              </Button>
             </Stack>
           </Card>
         ) : assets.length === 0 ? (
@@ -176,7 +189,7 @@ export function MissionAssets() {
                     {...props}
                     variant="light"
                     leftSection={<IconUpload size={16} />}
-                    loading={uploading}
+                    loading={isUploading}
                   >
                     Upload Assets
                   </Button>
@@ -190,7 +203,7 @@ export function MissionAssets() {
             organization={organization || ''}
             project={project || ''}
             mission={selectedMission}
-            getThumbnailUrl={getThumbnailUrl}
+            getThumbnailUrl={(asset) => getThumbnailUrl(asset, organization || '', project || '', selectedMission)}
           />
         )}
       </Stack>
