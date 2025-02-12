@@ -1,1 +1,0 @@
-[{"command":"docker","args":["compose","down"],"deps":{},"env":{},"inputs":{".moon/workspace.yml":"7a668d1644ccc3ef15f8c6fda0b9a2dbad3d0a3d"},"inputEnv":{},"outputs":[],"projectDeps":[],"script":null,"target":"docker:down","toolchains":["system","system"],"version":"2"},{"arch":"aarch64","os":"macos"}]

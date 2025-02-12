@@ -1,1 +1,0 @@
-[{"command":"bun","args":["install"],"deps":{},"env":{},"inputs":{".moon/tasks/typescript.yml":"679b8ab4c1b40a8203f431324edf07a203285a85",".moon/workspace.yml":"7a668d1644ccc3ef15f8c6fda0b9a2dbad3d0a3d"},"inputEnv":{},"outputs":[],"projectDeps":["docker","minio","redis"],"script":null,"target":"app:install","toolchains":["system"],"version":"2"},{"arch":"aarch64","os":"macos"}]
