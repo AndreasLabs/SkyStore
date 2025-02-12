@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { apiClient, Mission, Asset } from '../api/client';
 import { notifications } from '@mantine/notifications';
 import { AssetGrid } from '../components/AssetGrid';
+import { LocationPicker } from '../components/LocationPicker';
 
 export function MissionDashboard() {
   const navigate = useNavigate();
@@ -177,9 +178,16 @@ export function MissionDashboard() {
 
                 <Group wrap="nowrap">
                   <IconMap size={20} style={{ flexShrink: 0 }} />
-                  <Stack gap={0}>
+                  <Stack gap={0} style={{ flex: 1 }}>
                     <Text fw={500}>Location</Text>
-                    <Text size="sm" c="dimmed">{missionData.location || 'Not specified'}</Text>
+                    {missionData.location ? (
+                      <LocationPicker
+                        value={missionData.location}
+                        onChange={() => {}} // Read-only in dashboard
+                      />
+                    ) : (
+                      <Text size="sm" c="dimmed">Not specified</Text>
+                    )}
                   </Stack>
                 </Group>
 
