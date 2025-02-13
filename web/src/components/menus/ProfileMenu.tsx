@@ -1,17 +1,37 @@
 import React from 'react';
-import { Menu, Avatar, Text, UnstyledButton, Group } from '@mantine/core';
+import { Menu, Avatar, Text, UnstyledButton, Group, Skeleton } from '@mantine/core';
 import { IconSettings, IconLogout, IconUser } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
-
-// Mock user data - in real app this would come from auth context/API
-const mockUser = {
-  name: 'John Doe',
-  email: 'john@example.com',
-  avatar: null,
-};
+import { useCurrentUser } from '../../contexts/UserContext';
 
 export function ProfileMenu() {
   const navigate = useNavigate();
+  const { user, isLoading, setCurrentUserId } = useCurrentUser();
+
+  const handleLogout = () => {
+    setCurrentUserId(null);
+    navigate('/');
+  };
+
+  if (isLoading) {
+    return (
+      <Group gap="xs">
+        <Skeleton height={30} circle />
+        <Skeleton height={20} width={100} />
+      </Group>
+    );
+  }
+
+  if (!user) {
+    return (
+      <UnstyledButton onClick={() => navigate('/profile')}>
+        <Group gap="xs">
+          <Avatar radius="xl" size="sm" color="blue">?</Avatar>
+          <Text size="sm" fw={500}>Sign In</Text>
+        </Group>
+      </UnstyledButton>
+    );
+  }
 
   return (
     <Menu position="bottom-end" shadow="md" width={200}>
@@ -19,16 +39,16 @@ export function ProfileMenu() {
         <UnstyledButton>
           <Group gap="xs">
             <Avatar
-              src={mockUser.avatar}
-              alt={mockUser.name}
+              src={user.avatar}
+              alt={user.name}
               radius="xl"
               size="sm"
               color="blue"
             >
-              {mockUser.name.charAt(0)}
+              {user.name.charAt(0)}
             </Avatar>
             <Text size="sm" fw={500}>
-              {mockUser.name}
+              {user.name}
             </Text>
           </Group>
         </UnstyledButton>
@@ -37,8 +57,8 @@ export function ProfileMenu() {
       <Menu.Dropdown>
         <Menu.Label>Profile</Menu.Label>
         <Menu.Item>
-          <Text size="sm" fw={500}>{mockUser.name}</Text>
-          <Text size="xs" c="dimmed">{mockUser.email}</Text>
+          <Text size="sm" fw={500}>{user.name}</Text>
+          <Text size="xs" c="dimmed">{user.email}</Text>
         </Menu.Item>
         <Menu.Divider />
         <Menu.Item
@@ -57,10 +77,7 @@ export function ProfileMenu() {
         <Menu.Item
           color="red"
           leftSection={<IconLogout size={16} />}
-          onClick={() => {
-            // In real app, this would call logout API
-            navigate('/');
-          }}
+          onClick={handleLogout}
         >
           Logout
         </Menu.Item>

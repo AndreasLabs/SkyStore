@@ -2,7 +2,6 @@ import React from 'react';
 import { Menu, Text, UnstyledButton, Group, Loader } from '@mantine/core';
 import { IconChevronDown, IconPlus, IconBuilding } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Organization } from '../../api/client';
 import { useOrganizations } from '../../api/hooks';
 
 export function OrganizationMenu() {
