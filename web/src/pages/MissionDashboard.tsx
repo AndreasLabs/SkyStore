@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Title, Text, Group, Stack, Card, Button, Loader, Center, FileButton, Progress, Grid, Badge, Divider } from '@mantine/core';
-import { IconUpload, IconInfoCircle, IconPhoto, IconCalendar, IconMap, IconTelescope, IconTarget, IconClock, IconCloud, IconUser, IconFlag, IconChecklist } from '@tabler/icons-react';
+import { Container, Title, Text, Group, Stack, Card, Button, Loader, Center, FileButton, Progress, Grid, Badge, Divider, ScrollArea } from '@mantine/core';
+import { IconUpload, IconInfoCircle, IconPhoto, IconCalendar, IconMap, IconTelescope, IconTarget, IconClock, IconCloud, IconUser, IconFlag, IconChecklist, IconPlus, IconRefresh } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { apiClient, Mission, Asset } from '../api/client';
+import { apiClient, Mission, Asset, Task } from '../api/client';
 import { notifications } from '@mantine/notifications';
 import { AssetGrid } from '../components/AssetGrid';
 import { LocationPicker } from '../components/LocationPicker';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { TaskCard } from '../components/TaskCard';
 
 export function MissionDashboard() {
   const navigate = useNavigate();
@@ -15,6 +17,17 @@ export function MissionDashboard() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const queryClient = useQueryClient();
+
+  // Add tasks query
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
+    queryKey: ['tasks', organization, project, mission],
+    queryFn: () => {
+      if (!organization || !project || !mission) throw new Error('Missing parameters');
+      return apiClient.listTasks(organization, project, mission);
+    },
+    enabled: Boolean(organization && project && mission)
+  });
 
   useEffect(() => {
     if (organization && project && mission) {
@@ -124,16 +137,23 @@ export function MissionDashboard() {
   }
 
   return (
-    <Container size="lg" py="xl">
+    <Container size="xl" py="xl">
       <Stack gap="xl">
         <Group justify="space-between">
           <Title order={2}>{missionData?.name || 'Mission Dashboard'}</Title>
           <Group>
             <Button
-              leftSection={<IconChecklist size={20} />}
+              leftSection={<IconRefresh size={16} />}
+              variant="light"
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['tasks'] })}
+            >
+              Refresh
+            </Button>
+            <Button
+              leftSection={<IconPlus size={16} />}
               onClick={() => navigate(`/org/${organization}/project/${project}/mission/${mission}/tasks`)}
             >
-              Tasks
+              Create Task
             </Button>
             <FileButton onChange={handleFileUpload} accept="image/*" multiple>
               {(props) => (
@@ -174,7 +194,7 @@ export function MissionDashboard() {
         )}
 
         <Grid>
-          <Grid.Col span={{ base: 12, md: 4 }}>
+          <Grid.Col span={{ base: 12, md: 3 }}>
             <Card withBorder>
               <Stack gap="lg">
                 <Group wrap="nowrap">
@@ -300,7 +320,7 @@ export function MissionDashboard() {
             </Card>
           </Grid.Col>
 
-          <Grid.Col span={{ base: 12, md: 8 }}>
+          <Grid.Col span={{ base: 12, md: 6 }}>
             {assets.length === 0 ? (
               <Card withBorder p="xl" h="100%">
                 <Stack align="center" gap="md">
@@ -332,6 +352,33 @@ export function MissionDashboard() {
                 getThumbnailUrl={getThumbnailUrl}
               />
             )}
+          </Grid.Col>
+
+          <Grid.Col span={{ base: 12, md: 3 }}>
+            <Card withBorder>
+              <Stack gap="md">
+                <Group gap="xs">
+                  <IconChecklist size={20} />
+                  <Text fw={500}>Processing Tasks</Text>
+                  <Text size="sm" c="dimmed">({tasks.length})</Text>
+                </Group>
+                <ScrollArea h="calc(100vh - 200px)" type="auto">
+                  <Stack gap="md">
+                    {tasksLoading ? (
+                      <Center>
+                        <Loader size="sm" />
+                      </Center>
+                    ) : tasks.length === 0 ? (
+                      <Text c="dimmed" ta="center" size="sm">No tasks yet</Text>
+                    ) : (
+                      tasks.map((task) => (
+                        <TaskCard key={task.id} task={task} />
+                      ))
+                    )}
+                  </Stack>
+                </ScrollArea>
+              </Stack>
+            </Card>
           </Grid.Col>
         </Grid>
       </Stack>

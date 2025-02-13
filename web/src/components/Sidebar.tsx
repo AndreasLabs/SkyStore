@@ -28,7 +28,7 @@ function NavItem({ label, icon, path, active, disabled, selectedItem, onClick }:
           <Text>{label}</Text>
           {selectedItem && (
             <Text size="xs" c="dimmed" truncate>
-              Selected: {selectedItem}
+              {selectedItem}
             </Text>
           )}
         </Stack>
