@@ -52,9 +52,10 @@ export function Sidebar() {
     {
       label: 'Home',
       icon: <IconHome size="1.2rem" />,
-      path: '/',
-      active: location.pathname === '/',
-      onClick: () => navigate('/'),
+      path: `/org/${organization}/project/${project}`,
+      active: location.pathname === `/org/${organization}/project/${project}`,
+      disabled: !organization || !project,
+      onClick: () => organization && project && navigate(`/org/${organization}/project/${project}`),
     },
     {
       label: 'Mission',

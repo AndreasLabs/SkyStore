@@ -8,6 +8,8 @@ import { SelectProject } from './pages/SelectProject';
 import { ProjectDashboard } from './pages/ProjectDashboard';
 import { MissionDashboard } from './pages/MissionDashboard';
 import { MissionAssets } from './pages/MissionAssets';
+import { Profile } from './pages/Profile';
+import { Settings } from './pages/Settings';
 import Tasks from './pages/Tasks';
 import { AppShell } from './components/AppShell';
 
@@ -34,6 +36,10 @@ export function AppRoutes() {
         
         {/* Settings routes */}
         <Route path="/org/:organization/project/:project/settings" element={<div>Project Settings</div>} />
+        
+        {/* User routes */}
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
     </RouterRoutes>
   );
