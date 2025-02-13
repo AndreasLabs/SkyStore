@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useParams } from 'react-router-dom';
 import { 
   Card, 
@@ -13,6 +13,7 @@ import {
   Collapse,
   Code,
   ScrollArea,
+  Box,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -30,18 +31,53 @@ import {
   IconRotate,
 } from '@tabler/icons-react';
 
-function getStatusColor(status: Task['status']) {
-  switch (status) {
-    case 'pending':
+const STATUS_CODES = {
+  QUEUED: 10,
+  RUNNING: 20,
+  FAILED: 30,
+  COMPLETED: 40,
+  CANCELED: 50
+} as const;
+
+interface TaskStatus {
+  code: typeof STATUS_CODES[keyof typeof STATUS_CODES];
+}
+
+interface ExtendedTask extends Omit<Task, 'status'> {
+  status: TaskStatus;
+}
+
+function getStatusColor(status: TaskStatus) {
+  switch (status.code) {
+    case STATUS_CODES.QUEUED:
       return 'yellow';
-    case 'in_progress':
+    case STATUS_CODES.RUNNING:
       return 'blue';
-    case 'completed':
-      return 'green';
-    case 'failed':
+    case STATUS_CODES.FAILED:
       return 'red';
+    case STATUS_CODES.COMPLETED:
+      return 'green';
+    case STATUS_CODES.CANCELED:
+      return 'gray';
     default:
       return 'gray';
+  }
+}
+
+function getStatusText(status: TaskStatus) {
+  switch (status.code) {
+    case STATUS_CODES.QUEUED:
+      return 'Queued';
+    case STATUS_CODES.RUNNING:
+      return 'Running';
+    case STATUS_CODES.FAILED:
+      return 'Failed';
+    case STATUS_CODES.COMPLETED:
+      return 'Completed';
+    case STATUS_CODES.CANCELED:
+      return 'Canceled';
+    default:
+      return 'Unknown';
   }
 }
 
@@ -59,9 +95,8 @@ function formatDuration(ms: number): string {
   }
 }
 
-export function TaskCard({ task }: { task: Task }) {
+export function TaskCard({ task }: { task: ExtendedTask }) {
   const [opened, { toggle }] = useDisclosure(false);
-  const [logsModalOpened, setLogsModalOpened] = useState(false);
   const { organization, project, mission } = useParams();
   const queryClient = useQueryClient();
 
@@ -73,8 +108,8 @@ export function TaskCard({ task }: { task: Task }) {
       const response = await apiClient.getTaskStatus(organization, project, mission, task.id);
       return response;
     },
-    enabled: Boolean(organization && project && mission && (task.status === 'in_progress' || task.status === 'pending')),
-    refetchInterval: (task.status === 'in_progress' || task.status === 'pending') ? 5000 : false,
+    enabled: Boolean(organization && project && mission && task.status.code === STATUS_CODES.RUNNING),
+    refetchInterval: task.status.code === STATUS_CODES.RUNNING ? 5000 : false,
   });
  
   // Get console output
@@ -83,12 +118,10 @@ export function TaskCard({ task }: { task: Task }) {
     queryFn: async () => {
       if (!organization || !project || !mission) throw new Error('Missing parameters');
       const response = await apiClient.getTaskOutput(organization, project, mission, task.id, 0);
-      // Handle the response data which could be a string or array
-      const outputText = JSON.parse(response[0]);
-      return outputText;
+      return JSON.parse(response[0]);
     },
     enabled: Boolean(organization && project && mission),
-    refetchInterval: false, // Disable auto-polling
+    refetchInterval: false,
   });
 
   // Mutations for pause/resume
@@ -138,22 +171,22 @@ export function TaskCard({ task }: { task: Task }) {
 
   // Use the latest task data
   const currentTask = taskStatus || task;
-  const isProcessing = currentTask.status === 'in_progress';
-  const isPaused = currentTask.status === 'pending' && currentTask.odmTaskId;
-  const isCompleted = currentTask.status === 'completed';
+  const isProcessing = currentTask.status.code === STATUS_CODES.RUNNING;
+  const isPaused = currentTask.status.code === STATUS_CODES.QUEUED;
+  const isCompleted = currentTask.status.code === STATUS_CODES.COMPLETED;
 
   return (
-    <Card withBorder shadow="sm" padding="md" radius="md">
+    <Card withBorder shadow="sm" padding="md" radius="md" style={{ width: '100%', maxWidth: '100%' }}>
       <Stack gap="xs">
         <Group justify="space-between" mb="xs">
           <Group>
-            <Text fw={500} size="lg" truncate>{currentTask.name}</Text>
+            <Text fw={500} size="lg" truncate style={{ maxWidth: 200 }}>{currentTask.name}</Text>
             <Badge 
               variant="light" 
               color={getStatusColor(currentTask.status)}
-              leftSection={currentTask.status === 'in_progress' ? <IconRotate size={12} className="rotating" /> : null}
+              leftSection={isProcessing ? <IconRotate size={12} className="rotating" /> : null}
             >
-              {currentTask.status}
+              {getStatusText(currentTask.status)}
             </Badge>
           </Group>
           <ActionIcon 
@@ -219,7 +252,7 @@ export function TaskCard({ task }: { task: Task }) {
               )}
             </Stack>
 
-            {/* Console Output Section - Simplified */}
+            {/* Console Output Section */}
             <Stack gap="xs">
               <Group justify="space-between">
                 <Text size="sm" fw={500}>Console Output</Text>
@@ -233,16 +266,20 @@ export function TaskCard({ task }: { task: Task }) {
                   </ActionIcon>
                 </Group>
               </Group>
-              <ScrollArea h={100} type="auto">
-                <Code block>
-                  {consoleOutput && consoleOutput.length > 0 ? (
-                    consoleOutput.map((line: string, index: number) => (
-                      <Text key={index} size="xs" style={{ whiteSpace: 'pre-wrap' }}>{line}</Text>
-                    ))
-                  ) : (
-                    <Text size="xs" c="dimmed" fs="italic">No output available.</Text>
-                  )}
-                </Code>
+              <ScrollArea h={100} type="auto" offsetScrollbars>
+                <Box w="100%" style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                  <Code block style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {consoleOutput && consoleOutput.length > 0 ? (
+                      consoleOutput.map((line: string, index: number) => (
+                        <Text key={index} size="xs" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                          {line}
+                        </Text>
+                      ))
+                    ) : (
+                      <Text size="xs" c="dimmed" fs="italic">No output available.</Text>
+                    )}
+                  </Code>
+                </Box>
               </ScrollArea>
             </Stack>
           </Stack>

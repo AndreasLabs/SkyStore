@@ -80,6 +80,30 @@ function formatDuration(ms: number): string {
   }
 }
 
+function TaskColumn({ title, tasks, icon: Icon, color }: { 
+  title: string; 
+  tasks: Task[]; 
+  icon: React.ElementType;
+  color: string;
+}) {
+  return (
+    <Card withBorder padding="md" radius="md">
+      <Stack gap="md">
+        <Group gap="xs">
+          <Icon size={20} color={`var(--mantine-color-${color}-filled)`} />
+          <Text fw={500}>{title}</Text>
+          <Text size="sm" c="dimmed">({tasks.length})</Text>
+        </Group>
+        <Stack gap="md">
+          {tasks.map((task) => (
+            <TaskCard key={task.id} task={task} />
+          ))}
+        </Stack>
+      </Stack>
+    </Card>
+  );
+}
+
 function TaskCard({ task }: { task: Task }) {
   const [opened, { toggle }] = useDisclosure(false);
   const [logsExpanded, setLogsExpanded] = useState(false);
@@ -95,8 +119,8 @@ function TaskCard({ task }: { task: Task }) {
       const response = await apiClient.getTaskStatus(organization, project, mission, task.id);
       return response;
     },
-    enabled: Boolean(organization && project && mission && (task.status === 'in_progress' || task.status === 'pending')),
-    refetchInterval: (task.status === 'in_progress' || task.status === 'pending') ? 5000 : false,
+    enabled: Boolean(organization && project && mission && task.status === 'in_progress'),
+    refetchInterval: task.status === 'in_progress' ? 5000 : false,
   });
  
   // Get console output
@@ -161,7 +185,7 @@ function TaskCard({ task }: { task: Task }) {
   // Use the latest task data
   const currentTask = taskStatus || task;
   const isProcessing = currentTask.status === 'in_progress';
-  const isPaused = currentTask.status === 'pending' && currentTask.odmTaskId;
+  const isPaused = currentTask.status === 'pending';
   const isCompleted = currentTask.status === 'completed';
 
   return (
@@ -276,38 +300,6 @@ function TaskCard({ task }: { task: Task }) {
                 </Code>
               </ScrollArea>
             </Stack>
-
-            <Modal 
-              opened={logsModalOpened} 
-              onClose={() => setLogsModalOpened(false)}
-              title="Console Output"
-              size="xl"
-              fullScreen
-            >
-              <Stack h="100%">
-                <Group justify="flex-end">
-                  <Button 
-                    variant="subtle" 
-                    size="sm"
-                    leftSection={<IconRefresh size={14} />}
-                    onClick={() => refetchLogs()}
-                  >
-                    Refresh
-                  </Button>
-                </Group>
-                <ScrollArea h="calc(100vh - 100px)" type="auto">
-                  <Code block>
-                    {consoleOutput && consoleOutput.length > 0 ? (
-                      consoleOutput.map((line, index) => (
-                        <Text key={index} size="sm" style={{ whiteSpace: 'pre-wrap' }}>{line}</Text>
-                      ))
-                    ) : (
-                      <Text size="sm" c="dimmed" fs="italic">No output available.</Text>
-                    )}
-                  </Code>
-                </ScrollArea>
-              </Stack>
-            </Modal>
 
             {isCompleted && currentTask.assets && (
               <Stack gap="xs">
@@ -463,30 +455,6 @@ function TaskCard({ task }: { task: Task }) {
             </Tooltip>
           </Group>
         </Group>
-      </Stack>
-    </Card>
-  );
-}
-
-function TaskColumn({ title, tasks, icon: Icon, color }: { 
-  title: string; 
-  tasks: Task[]; 
-  icon: React.ElementType;
-  color: string;
-}) {
-  return (
-    <Card withBorder padding="md" radius="md">
-      <Stack gap="md">
-        <Group gap="xs">
-          <Icon size={20} color={`var(--mantine-color-${color}-filled)`} />
-          <Text fw={500}>{title}</Text>
-          <Text size="sm" c="dimmed">({tasks.length})</Text>
-        </Group>
-        <Stack gap="md">
-          {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} />
-          ))}
-        </Stack>
       </Stack>
     </Card>
   );
