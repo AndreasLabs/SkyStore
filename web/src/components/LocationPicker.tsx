@@ -67,7 +67,7 @@ export function LocationPicker({
             zoom: 11
           }}
           style={{ width: '100%', height: '100%' }}
-          mapStyle="mapbox://styles/mapbox/streets-v12"
+          mapStyle="mapbox://styles/victoryforphil/cm5xshpj600eg01slhyzb1atu"
           onClick={handleMapClick}
         >
           <Marker

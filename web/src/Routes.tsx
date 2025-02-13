@@ -8,6 +8,7 @@ import { SelectProject } from './pages/SelectProject';
 import { ProjectDashboard } from './pages/ProjectDashboard';
 import { MissionDashboard } from './pages/MissionDashboard';
 import { MissionAssets } from './pages/MissionAssets';
+import Tasks from './pages/Tasks';
 import { AppShell } from './components/AppShell';
 
 export function AppRoutes() {
@@ -29,6 +30,7 @@ export function AppRoutes() {
         <Route path="/org/:organization/project/:project/mission/create" element={<CreateMission />} />
         <Route path="/org/:organization/project/:project/mission/:mission" element={<MissionDashboard />} />
         <Route path="/org/:organization/project/:project/mission/:mission/assets" element={<MissionAssets />} />
+        <Route path="/org/:organization/project/:project/mission/:mission/tasks" element={<Tasks />} />
         
         {/* Settings routes */}
         <Route path="/org/:organization/project/:project/settings" element={<div>Project Settings</div>} />

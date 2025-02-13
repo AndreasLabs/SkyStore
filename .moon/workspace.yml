@@ -6,7 +6,8 @@ projects:
   redis: 'redis'
   minio: 'minio'
   docker: 'docker'
-  odm-bridge: 'odm-bridge'
+  # odm-bridge: 'odm-bridge'
+  node-odm: 'node-odm'
 vcs:
   manager: 'git'
   defaultBranch: 'main'

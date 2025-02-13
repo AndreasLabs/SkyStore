@@ -13,9 +13,26 @@ services:
       - MINIO_PORT=9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
+      - NODEODM_URL=http://nodeodm:3000
     depends_on:
       - redis
       - minio
+      - nodeodm
+    networks:
+      - skystore-network
+    restart: unless-stopped
+
+  nodeodm:
+    image: opendronemap/nodeodm:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - nodeodm-data:/var/www/data
+    environment:
+      - PORT=3000
+      - HOSTNAME=nodeodm
+      - MAX_IMAGES=500
+      - MAX_WORKERS=2
     networks:
       - skystore-network
     restart: unless-stopped
@@ -32,9 +49,11 @@ services:
       - MINIO_PORT=9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
+      - NODEODM_URL=http://nodeodm:3000
     depends_on:
       - redis
       - minio
+      - nodeodm
     networks:
       - skystore-network
     restart: unless-stopped
@@ -80,4 +99,6 @@ volumes:
   redis-data:
     driver: local
   minio-data:
+    driver: local
+  nodeodm-data:
     driver: local

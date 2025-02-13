@@ -29,7 +29,49 @@ export interface Mission {
     weather_conditions: string;
     observer: string;
     priority: string;
+    altitude: string;
+    overlap_percent: string;
+    sidelap_percent: string;
+    ground_resolution: string;
   };
+}
+
+export interface Task {
+  id: string;
+  name: string;
+  description: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  missionId: string;
+  organization: string;
+  project: string;
+  mission: string;
+  createdAt: string;
+  updatedAt: string;
+  odmTaskId: string | null;
+  progress: number;
+  error: string | null;
+  imagesCount: number;
+  processingTime: number;
+  options: Array<{
+    name: string;
+    value: string | number | boolean;
+  }>;
+  assets?: {
+    all: string;
+    orthophoto?: string;
+    dsm?: string;
+    dtm?: string;
+    pointcloud?: string;
+    model3d?: string;
+    report?: string;
+  };
+}
+
+export interface CreateTaskPayload {
+  name: string;
+  description: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  missionId: string;
 }
 
 export interface CreateMissionPayload {
@@ -168,6 +210,49 @@ export const apiClient = {
       }
     ),
 
+  // Task endpoints
+  createTask: (organization: string, project: string, mission: string, data: CreateTaskPayload) =>
+    apiFetch<Task>(
+      `/org/${organization}/project/${project}/mission/${mission}/tasks`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    ),
+
+  listTasks: (organization: string, project: string, mission: string) =>
+    apiFetch<Task[]>(`/org/${organization}/project/${project}/mission/${mission}/tasks`),
+
+  updateTask: (organization: string, project: string, mission: string, taskId: string, data: Partial<CreateTaskPayload>) =>
+    apiFetch<Task>(
+      `/org/${organization}/project/${project}/mission/${mission}/tasks/${taskId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }
+    ),
+
+  deleteTask: (organization: string, project: string, mission: string, taskId: string) =>
+    apiFetch<void>(
+      `/org/${organization}/project/${project}/mission/${mission}/tasks/${taskId}`,
+      { method: 'DELETE' }
+    ),
+
+  getTaskStatus: (organization: string, project: string, mission: string, taskId: string) =>
+    apiFetch<Task>(`/org/${organization}/project/${project}/mission/${mission}/tasks/${taskId}/status`),
+
+  pauseTask: (organization: string, project: string, mission: string, taskId: string) =>
+    apiFetch<Task>(
+      `/org/${organization}/project/${project}/mission/${mission}/tasks/${taskId}/pause`,
+      { method: 'POST' }
+    ),
+
+  resumeTask: (organization: string, project: string, mission: string, taskId: string) =>
+    apiFetch<Task>(
+      `/org/${organization}/project/${project}/mission/${mission}/tasks/${taskId}/resume`,
+      { method: 'POST' }
+    ),
+
   // Asset endpoints
   uploadAsset: (organization: string, project: string, mission: string, file: File) => {
     const formData = new FormData();
@@ -190,4 +275,14 @@ export const apiClient = {
 
   getThumbnailUrl: (organization: string, project: string, mission: string, assetId: string) =>
     `${API_URL}/org/${organization}/project/${project}/mission/${mission}/assets/${assetId}/thumbnail`,
+
+  getTaskOutput: (organization: string, project: string, mission: string, taskId: string, line: number = 0): Promise<{ data: string[] }> => {
+    return apiFetch<{ data: any }>(
+      `/org/${organization}/project/${project}/mission/${mission}/tasks/${taskId}/output?line=${line}`,
+      {
+        method: 'GET',
+      }
+    );
+
+  },
 }; 

@@ -1,0 +1,16 @@
+$schema: 'https://moonrepo.dev/schemas/project.json'
+
+type: 'application'
+
+project:
+  name: 'node-odm'
+  description: 'NodeODM server'
+
+tasks:
+  up:
+    script: 'docker compose up -d nodeodm && sleep 3'
+    options:
+      cache: false
+
+  down:
+    command: 'docker compose down nodeodm'

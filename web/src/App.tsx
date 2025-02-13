@@ -7,28 +7,26 @@ import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import './index.css';
 
-// Create custom theme
 const theme = createTheme({
   primaryColor: 'gray',
-  // Custom theme properties
   components: {
     Paper: {
       defaultProps: {
-        className: 'glass-container',
+        className: 'neo-glass',
       },
     },
     Card: {
       defaultProps: {
-        className: 'glass-container',
+        className: 'neo-glass',
       },
     },
     Modal: {
       styles: {
         content: {
-          background: 'rgba(255, 255, 255, 0.08) !important',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+          background: 'rgba(18, 18, 18, 0.95) !important',
+          backdropFilter: 'blur(30px) saturate(200%)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.45)',
         },
       },
     },
@@ -38,16 +36,16 @@ const theme = createTheme({
           background: 'transparent',
         },
         header: {
-          background: 'rgba(255, 255, 255, 0.08)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          boxShadow: '0 4px 32px 0 rgba(0, 0, 0, 0.37)',
+          background: 'rgba(18, 18, 18, 0.95)',
+          backdropFilter: 'blur(30px) saturate(200%)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          boxShadow: '0 4px 32px 0 rgba(0, 0, 0, 0.45)',
         },
         navbar: {
-          background: 'rgba(255, 255, 255, 0.08)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          borderRight: '1px solid rgba(255, 255, 255, 0.08)',
-          boxShadow: '4px 0 32px 0 rgba(0, 0, 0, 0.37)',
+          background: 'rgba(18, 18, 18, 0.95)',
+          backdropFilter: 'blur(30px) saturate(200%)',
+          borderRight: '1px solid rgba(255, 255, 255, 0.1)',
+          boxShadow: '4px 0 32px 0 rgba(0, 0, 0, 0.45)',
         },
       },
     },
@@ -57,13 +55,13 @@ const theme = createTheme({
       },
       styles: {
         root: {
-          background: 'rgba(255, 255, 255, 0.08)',
-          backdropFilter: 'blur(24px)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'rgba(28, 28, 28, 0.95)',
+          backdropFilter: 'blur(30px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
           color: '#fff',
           '&:hover': {
-            background: 'rgba(255, 255, 255, 0.12)',
-            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+            background: 'rgba(38, 38, 38, 0.95)',
+            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.45)',
           },
         },
       },
