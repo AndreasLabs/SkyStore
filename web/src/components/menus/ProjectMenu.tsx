@@ -6,13 +6,11 @@ import { useProjects } from '../../api/hooks';
 
 export function ProjectMenu() {
   const navigate = useNavigate();
-  const { organization, project: urlProject } = useParams();
-  const { data: projects = [], isLoading, error } = useProjects(organization ?? '');
-  const currentProject = projects.find(p => p.key === urlProject);
+  const { organization, project } = useParams();
+  const { data: projects = [], isLoading, error } = useProjects(organization || '');
+  const currentProject = projects.find(p => p.key === project);
 
-  if (!organization) {
-    return null;
-  }
+  if (!organization) return null;
 
   return (
     <Menu position="bottom-start" shadow="md" width={220}>
@@ -40,7 +38,7 @@ export function ProjectMenu() {
           projects.map((proj) => (
             <Menu.Item 
               key={proj.key} 
-              onClick={() => navigate(`/org/${organization}/project/${proj.key}`, { replace: true })}
+              onClick={() => navigate(`/org/${organization}/project/${proj.key}`)}
             >
               <Text size="sm">{proj.name}</Text>
             </Menu.Item>

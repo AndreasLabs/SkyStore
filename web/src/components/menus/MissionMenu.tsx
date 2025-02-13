@@ -6,13 +6,11 @@ import { useMissions } from '../../api/hooks';
 
 export function MissionMenu() {
   const navigate = useNavigate();
-  const { organization, project, mission: urlMission } = useParams();
-  const { data: missions = [], isLoading, error } = useMissions(organization ?? '', project ?? '');
-  const currentMission = missions.find(m => m.mission === urlMission);
+  const { organization, project, mission } = useParams();
+  const { data: missions = [], isLoading, error } = useMissions(organization || '', project || '');
+  const currentMission = missions.find(m => m.mission === mission);
 
-  if (!organization || !project) {
-    return null;
-  }
+  if (!organization || !project) return null;
 
   return (
     <Menu position="bottom-start" shadow="md" width={220}>
@@ -40,7 +38,7 @@ export function MissionMenu() {
           missions.map((m) => (
             <Menu.Item 
               key={m.mission} 
-              onClick={() => navigate(`/org/${organization}/project/${project}/mission/${m.mission}`, { replace: true })}
+              onClick={() => navigate(`/org/${organization}/project/${project}/mission/${m.mission}`)}
             >
               <Text size="sm">{m.name}</Text>
             </Menu.Item>

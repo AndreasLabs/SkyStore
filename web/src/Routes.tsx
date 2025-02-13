@@ -6,6 +6,7 @@ import { CreateProject } from './pages/CreateProject';
 import { CreateMission } from './pages/CreateMission';
 import { SelectOrganization } from './pages/SelectOrganization';
 import { SelectProject } from './pages/SelectProject';
+import { SelectMission } from './pages/SelectMission';
 import { ProjectDashboard } from './pages/ProjectDashboard';
 import { MissionDashboard } from './pages/MissionDashboard';
 import { MissionAssets } from './pages/MissionAssets';
@@ -31,7 +32,7 @@ export function AppRoutes() {
         
         {/* Project routes */}
         <Route path="/org/:organization/project/create" element={<CreateProject />} />
-        <Route path="/org/:organization/project/:project" element={<ProjectDashboard />} />
+        <Route path="/org/:organization/project/:project" element={<SelectMission />} />
         
         {/* Mission routes */}
         <Route path="/org/:organization/project/:project/mission/create" element={<CreateMission />} />

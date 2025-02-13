@@ -19,12 +19,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useOrganizations, useProjects, useMissions } from '../../api/hooks';
 
 interface LocationPickerProps {
+  organization?: string;
+  project?: string;
+  mission?: string;
   showHome?: boolean;
 }
 
-export function LocationPicker({ showHome = true }: LocationPickerProps) {
+export function LocationPicker({ organization, project, mission, showHome = true }: LocationPickerProps) {
   const navigate = useNavigate();
-  const { organization, project, mission } = useParams();
   const { data: organizations = [], isLoading: orgsLoading } = useOrganizations();
   const { data: projects = [], isLoading: projectsLoading } = useProjects(organization ?? '');
   const { data: missions = [], isLoading: missionsLoading } = useMissions(organization ?? '', project ?? '');
@@ -70,7 +72,6 @@ export function LocationPicker({ showHome = true }: LocationPickerProps) {
               <Menu.Item 
                 key={org.key} 
                 onClick={() => navigate(`/org/${org.key}`)}
-                color={org.key === organization ? 'blue' : undefined}
               >
                 <Text size="sm">{org.name}</Text>
               </Menu.Item>
@@ -113,7 +114,6 @@ export function LocationPicker({ showHome = true }: LocationPickerProps) {
                 <Menu.Item 
                   key={proj.key} 
                   onClick={() => navigate(`/org/${organization}/project/${proj.key}`)}
-                  color={proj.key === project ? 'blue' : undefined}
                 >
                   <Text size="sm">{proj.name}</Text>
                 </Menu.Item>
@@ -157,7 +157,6 @@ export function LocationPicker({ showHome = true }: LocationPickerProps) {
                 <Menu.Item 
                   key={m.mission} 
                   onClick={() => navigate(`/org/${organization}/project/${project}/mission/${m.mission}`)}
-                  color={m.mission === mission ? 'blue' : undefined}
                 >
                   <Text size="sm">{m.name}</Text>
                 </Menu.Item>
