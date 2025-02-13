@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Title, Text, Group, Stack, Card, Button, Loader, Center, FileButton, Progress, Grid, Badge, Divider } from '@mantine/core';
-import { IconUpload, IconInfoCircle, IconPhoto, IconCalendar, IconMap, IconTelescope, IconTarget, IconClock, IconCloud, IconUser, IconFlag } from '@tabler/icons-react';
+import { IconUpload, IconInfoCircle, IconPhoto, IconCalendar, IconMap, IconTelescope, IconTarget, IconClock, IconCloud, IconUser, IconFlag, IconChecklist } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiClient, Mission, Asset } from '../api/client';
 import { notifications } from '@mantine/notifications';
@@ -126,23 +126,34 @@ export function MissionDashboard() {
   return (
     <Container size="lg" py="xl">
       <Stack gap="xl">
+        <Group justify="space-between">
+          <Title order={2}>{missionData?.name || 'Mission Dashboard'}</Title>
+          <Group>
+            <Button
+              leftSection={<IconChecklist size={20} />}
+              onClick={() => navigate(`/org/${organization}/project/${project}/mission/${mission}/tasks`)}
+            >
+              Tasks
+            </Button>
+            <FileButton onChange={handleFileUpload} accept="image/*" multiple>
+              {(props) => (
+                <Button
+                  {...props}
+                  leftSection={<IconUpload size={20} />}
+                  loading={uploading}
+                  disabled={uploading}
+                >
+                  Upload Assets
+                </Button>
+              )}
+            </FileButton>
+          </Group>
+        </Group>
+
         <Group justify="space-between" align="flex-start">
           <Stack gap={4}>
-            <Title order={2}>{missionData.name}</Title>
             <Text c="dimmed" size="sm">Mission details and assets</Text>
           </Stack>
-          <FileButton onChange={handleFileUpload} accept="image/*,application/fits" multiple>
-            {(props) => (
-              <Button
-                {...props}
-                leftSection={<IconUpload size={16} />}
-                loading={uploading}
-                variant="filled"
-              >
-                Upload Assets
-              </Button>
-            )}
-          </FileButton>
         </Group>
 
         {uploading && (
@@ -249,6 +260,40 @@ export function MissionDashboard() {
                     >
                       {missionData.metadata.priority || 'Not specified'}
                     </Badge>
+                  </Stack>
+                </Group>
+
+                <Divider />
+
+                <Group wrap="nowrap">
+                  <IconTarget size={20} style={{ flexShrink: 0 }} />
+                  <Stack gap={0}>
+                    <Text fw={500}>Altitude</Text>
+                    <Text size="sm" c="dimmed">{missionData.metadata.altitude || 'Not specified'}</Text>
+                  </Stack>
+                </Group>
+
+                <Group wrap="nowrap">
+                  <IconTarget size={20} style={{ flexShrink: 0 }} />
+                  <Stack gap={0}>
+                    <Text fw={500}>Overlap %</Text>
+                    <Text size="sm" c="dimmed">{missionData.metadata.overlap_percent || 'Not specified'}</Text>
+                  </Stack>
+                </Group>
+
+                <Group wrap="nowrap">
+                  <IconTarget size={20} style={{ flexShrink: 0 }} />
+                  <Stack gap={0}>
+                    <Text fw={500}>Sidelap %</Text>
+                    <Text size="sm" c="dimmed">{missionData.metadata.sidelap_percent || 'Not specified'}</Text>
+                  </Stack>
+                </Group>
+
+                <Group wrap="nowrap">
+                  <IconTarget size={20} style={{ flexShrink: 0 }} />
+                  <Stack gap={0}>
+                    <Text fw={500}>Ground Resolution</Text>
+                    <Text size="sm" c="dimmed">{missionData.metadata.ground_resolution || 'Not specified'}</Text>
                   </Stack>
                 </Group>
               </Stack>

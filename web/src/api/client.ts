@@ -29,7 +29,31 @@ export interface Mission {
     weather_conditions: string;
     observer: string;
     priority: string;
+    altitude: string;
+    overlap_percent: string;
+    sidelap_percent: string;
+    ground_resolution: string;
   };
+}
+
+export interface Task {
+  id: string;
+  name: string;
+  description: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  missionId: string;
+  organization: string;
+  project: string;
+  mission: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTaskPayload {
+  name: string;
+  description: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  missionId: string;
 }
 
 export interface CreateMissionPayload {
@@ -166,6 +190,34 @@ export const apiClient = {
         method: 'PATCH',
         body: JSON.stringify(data),
       }
+    ),
+
+  // Task endpoints
+  createTask: (organization: string, project: string, mission: string, data: CreateTaskPayload) =>
+    apiFetch<Task>(
+      `/org/${organization}/project/${project}/mission/${mission}/tasks`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    ),
+
+  listTasks: (organization: string, project: string, mission: string) =>
+    apiFetch<Task[]>(`/org/${organization}/project/${project}/mission/${mission}/tasks`),
+
+  updateTask: (organization: string, project: string, mission: string, taskId: string, data: Partial<CreateTaskPayload>) =>
+    apiFetch<Task>(
+      `/org/${organization}/project/${project}/mission/${mission}/tasks/${taskId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }
+    ),
+
+  deleteTask: (organization: string, project: string, mission: string, taskId: string) =>
+    apiFetch<void>(
+      `/org/${organization}/project/${project}/mission/${mission}/tasks/${taskId}`,
+      { method: 'DELETE' }
     ),
 
   // Asset endpoints
