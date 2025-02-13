@@ -23,6 +23,7 @@ tasks:
     - 'docker:down'
     - 'redis:up'
     - 'minio:up'
+    - 'node-odm:up'
     options:
       cache: false
 
