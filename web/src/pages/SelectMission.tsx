@@ -91,8 +91,7 @@ function getAssetColor(contentType: string) {
 function getMapThumbnail(location: string) {
   try {
     const [lat, lon] = location.split(',').map(coord => coord.trim());
-    // Using Mapbox's dark style with 3D buildings and pitched view
-    return `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/pin-l+ff3333(${lon},${lat})/${lon},${lat},14,30,60/600x300?access_token=${MAPBOX_TOKEN}`;
+    return `https://api.mapbox.com/styles/v1/victoryforphil/cm5xshpj600eg01slhyzb1atu/static/${lon},${lat},13,0/600x300?access_token=${MAPBOX_TOKEN}`;
   } catch (e) {
     console.error('Failed to parse location:', e);
     return null;
@@ -106,7 +105,7 @@ function MissionCard({
   project, 
   onSelect 
 }: { 
-  mission: any; 
+  mission: Mission; 
   organization: string; 
   project: string;
   onSelect: () => void;
