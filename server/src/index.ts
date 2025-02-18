@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { RedisClient } from "./clients/RedisClient";
+import { RedisClient, RemoteRedisClient } from "./clients/RedisClient";
 import { StorageClient } from "./clients/MinioClient";
 import { GcpStorageClient } from "./clients/GcpStorageClient";
 import { config } from "./config";
@@ -12,7 +12,7 @@ import { assetRoutes } from './routes/asset';
 import { State } from "./types/State";
 
 // Initialize clients
-const redis = new RedisClient(config.redis.url);
+const redis: RedisClient = RemoteRedisClient(config.redis.url);
 const storage = new StorageClient(config.minio);
 //const gcp = new GcpStorageClient(config.gcp.bucket, config.gcp.keyFilename);
 

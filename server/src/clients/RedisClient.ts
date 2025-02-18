@@ -1,22 +1,44 @@
-import Redis from 'ioredis';
+
+import RedisMock from 'ioredis-mock';
 import { RedisValue, RedisPubSubMessage } from '../types/Redis';
+import logger from '../logger';
+import Redis from 'ioredis';
+
+export const MockedRedisClient = () => {
+  const client = new RedisMock();
+  logger.info('Using mocked Redis client');
+  return new RedisClient(client);
+}
+
+export const RemoteRedisClient = (url: string) => {
+  let client: Redis;
+  if (url) {
+    client = new Redis(url);
+    logger.info('Using remote Redis client');
+  } else {
+    client = new Redis();
+    logger.info('Using local Redis client');
+  }
+  return new RedisClient(client);
+}
 
 export class RedisClient {
   private client: Redis;
   private pubClient: Redis;
   private subClient: Redis;
-
-  constructor(url?: string) {
-    this.client = new Redis(url);
-    // Separate clients for pub/sub to avoid blocking
-    this.pubClient = new Redis(url);
-    this.subClient = new Redis(url);
+  constructor(client: Redis) {
+    logger.info('Using provided Redis client');
+      // Use provided client (for testing)
+    this.client = client;
+    this.pubClient = client;
+    this.subClient = client;
   }
 
   // High-level Function to save a JS object using native Redis types
   async setObject(key: string, object: Record<string, unknown>, expireSeconds?: number) {
     // Handle empty objects
     if (Object.keys(object).length === 0) {
+      logger.info(`Setting empty object for key: ${key}`);
       await this.set(key, '{}', expireSeconds);
       return;
     }
@@ -52,7 +74,7 @@ export class RedisClient {
         pipeline.expire(fieldKey, expireSeconds);
       }
     }
-
+    logger.info(`Executing pipeline for key: ${key}`);
     await pipeline.exec();
   }
 
@@ -89,20 +111,9 @@ export class RedisClient {
 
       const field = keys[index].slice(key.length + 1);
       
-      if (typeof value === 'string') {
-        // Try parsing as Date first
-        const dateValue = new Date(value);
-        if (!isNaN(dateValue.getTime()) && value.includes('T')) {
-          result[field] = dateValue;
-        }
-        // Then try as number
-        else if (!isNaN(Number(value))) {
-          result[field] = Number(value);
-        }
-        // Otherwise keep as string
-        else {
-          result[field] = value;
-        }
+      // Convert numeric strings to numbers
+      if (typeof value === 'string' && !isNaN(Number(value))) {
+        result[field] = Number(value);
       } else {
         result[field] = value;
       }
@@ -176,6 +187,10 @@ export class RedisClient {
 
   // Pub/Sub Operations
   async publish(channel: string, message: string) {
+
+    if (this.pubClient === this.subClient) {
+      return await this.client.publish(channel, message);
+    }
     return await this.pubClient.publish(channel, message);
   }
 
@@ -197,5 +212,11 @@ export class RedisClient {
     await this.client.quit();
     await this.pubClient.quit();
     await this.subClient.quit();
+  }
+
+  async flushall() {
+    await this.client.flushall();
+    await this.pubClient.flushall();
+    await this.subClient.flushall();
   }
 } 
