@@ -6,6 +6,3 @@ tasks:
     command: bun run build
     outputs:
     - dist
-
-  dev:
-    command: bun run dev
