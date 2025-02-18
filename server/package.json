@@ -2,14 +2,22 @@
   "name": "server",
   "version": "1.0.50",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "bun test",
     "dev": "bun run --watch src/index.ts"
   },
   "dependencies": {
-    "elysia": "latest"
+    "@google-cloud/storage": "^7.15.1",
+    "@skystore/core_types": "workspace:*",
+    "adze": "^2.2.1",
+    "elysia": "latest",
+    "ioredis": "^5.5.0",
+    "ioredis-mock": "^8.9.0",
+    "minio": "^8.0.4",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
-    "bun-types": "latest"
+    "bun-types": "latest",
+    "@types/ioredis-mock": "^8.2.5"
   },
   "module": "src/index.js"
 }
