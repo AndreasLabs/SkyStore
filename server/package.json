@@ -6,6 +6,8 @@
     "dev": "bun run --watch src/index.ts"
   },
   "dependencies": {
+    "@elysiajs/eden": "^1.2.0",
+    "@elysiajs/opentelemetry": "^1.1.0",
     "@google-cloud/storage": "^7.15.1",
     "@skystore/core_types": "workspace:*",
     "adze": "^2.2.1",

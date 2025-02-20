@@ -3,30 +3,25 @@ import { Elysia } from "elysia";
 import Redis from "ioredis-mock";
 import { projectRoutes } from "../../src/routes/project";
 import { MockedRedisClient, RedisClient } from "../../src/clients/RedisClient";
+import { projectController } from "../../src/controllers";
+import { CreateProjectBody } from "@skystore/core_types";
 
 describe("Project Routes", () => {
     let app: any;
     let redis: RedisClient = MockedRedisClient();
-    beforeEach( () => {
+    beforeAll( () => {
         console.log('Setting up test environment');
-     
+      
         app = new Elysia()
-            .state('redis', redis)
+            .decorate({
+                redis: redis
+            })
             .use(projectRoutes);
     });
 
 
 
     describe("POST /org/:org_key/projects/:key", async () => {
-        let app: any;
-        let redis: RedisClient = MockedRedisClient();
-        beforeEach( () => {
-            console.log('Setting up test environment');
-         
-            app = new Elysia()
-                .state('redis', redis)
-                .use(projectRoutes);
-        });
     
         test("should create a new project", async () => {
             const orgKey = "test-org";
@@ -103,21 +98,27 @@ describe("Project Routes", () => {
         test("should list projects for an organization", async () => {
             // Setup test data
             const orgKey = "test-org";
-            const projectData = {
+            const projectData: CreateProjectBody = {
+                key: "test-project",
                 name: "Test Project",
                 description: "Test Description",
                 owner_uuid: "test-owner-uuid",
-                organization_uuid: "test-org-uuid"
+                organization_uuid: "test-org-uuid",
+                organization_key: orgKey,
+                createdAt: new Date(),
+                updatedAt: new Date()
             };
-            await redis.setObject(`orgs:${orgKey}:projects:test-project:info`, projectData);
-            await redis.sadd(`orgs:${orgKey}:projects:members`, "test-project");
-
+            await projectController.createProject(projectData, redis);
+            
             // Make request
-            const response = await app
+            let response = await app
                 .handle(new Request(`http://localhost/org/${orgKey}/projects`))
                 .then(res => res.json());
+            
 
-            expect(response).toMatchObject([projectData]);
+            let {createdAt, updatedAt, metadata, ...rest} = response[0];
+            let {createdAt: _, updatedAt: __, metadata: ___, ...rest2} = projectData;
+            expect(rest).toMatchObject(rest2);
         });
     });
 

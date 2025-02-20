@@ -10,22 +10,35 @@ import { projectRoutes } from './routes/project';
 import { taskRoutes } from './routes/task';
 import { assetRoutes } from './routes/asset';
 import { State } from "./types/State";
+import { opentelemetry } from '@elysiajs/opentelemetry'
+
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node'
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto'
+import { S3Client } from "./clients/S3Client";
 
 // Initialize clients
 const redis: RedisClient = RemoteRedisClient(config.redis.url);
-const storage = new StorageClient(config.minio);
-//const gcp = new GcpStorageClient(config.gcp.bucket, config.gcp.keyFilename);
 
+//const gcp = new GcpStorageClient(config.gcp.bucket, config.gcp.keyFilename);
+const storage = S3Client.getInstance();
+await storage.initialize();
 // Create base app with state
 const app = new Elysia()
+.use(
+  opentelemetry({
+    serviceName: 'skystore-server',
+    spanProcessors: [
+      new BatchSpanProcessor(
+        new OTLPTraceExporter({
+          url: 'http://localhost:4317/v1/traces',
+
+        })
+      )
+    ],
+  })
+)
   .state('redis', redis)
-  .state('storage', storage)
-  .derive(() => ({
-    // Add JSON content type to all responses
-    headers: {
-      'content-type': 'application/json'
-    }
-  }))
+
   .onRequest(({ request }) => {
     const method = request.method;
     const url = request.url;
@@ -37,10 +50,6 @@ const app = new Elysia()
   .use(projectRoutes)
   .use(taskRoutes)
   .use(assetRoutes)
-  .get("/", () => {
-    logger.info("Handling root request");
-    return "Hello Elysia";
-  })
   .listen(3000);
 
 logger.info(

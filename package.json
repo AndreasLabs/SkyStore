@@ -2,7 +2,7 @@
   "name": "skystore",
   "private": true,
   "workspaces": [
-    "app",
+    "server",
     "web",
     "core_types"
   ]

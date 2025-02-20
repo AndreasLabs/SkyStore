@@ -10,7 +10,7 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - MINIO_ENDPOINT=minio
-      - MINIO_PORT=9000
+      - MINIO_PORT=9500
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - NODEODM_URL=http://nodeodm:3000
@@ -46,7 +46,7 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - MINIO_ENDPOINT=minio
-      - MINIO_PORT=9000
+      - MINIO_PORT=9500
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - NODEODM_URL=http://nodeodm:3000
@@ -74,7 +74,7 @@ services:
   minio:
     image: minio/minio:latest
     ports:
-      - "9000:9000"  # API port
+      - "9500:9000"  # API port
       - "9001:9001"  # Console port
     environment:
       - MINIO_ROOT_USER=minioadmin
@@ -91,6 +91,49 @@ services:
       retries: 3
     restart: unless-stopped
 
+  otel-collector:
+    image: signoz/signoz-otel-collector:0.88.7
+    ports:
+      - "4317:4317"    # OTLP gRPC receiver
+      - "4318:4318"    # OTLP http receiver
+    networks:
+      - skystore-network
+    restart: unless-stopped
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.11.2-alpine
+    ports:
+      - "9000:9000"
+      - "8123:8123"
+      - "9181:9181"
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    networks:
+      - skystore-network
+    restart: unless-stopped
+
+  query-service:
+    image: signoz/query-service:0.35.1
+    ports:
+      - "6060:6060"
+    environment:
+      - ClickHouseUrl=tcp://clickhouse:9000
+    depends_on:
+      - clickhouse
+    networks:
+      - skystore-network
+    restart: unless-stopped
+
+  frontend:
+    image: signoz/frontend:0.35.1
+    ports:
+      - "3301:3301"
+    depends_on:
+      - query-service
+    networks:
+      - skystore-network
+    restart: unless-stopped
+
 networks:
   skystore-network:
     driver: bridge
@@ -101,4 +144,6 @@ volumes:
   minio-data:
     driver: local
   nodeodm-data:
+    driver: local
+  clickhouse-data:
     driver: local
