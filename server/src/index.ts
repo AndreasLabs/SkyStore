@@ -3,9 +3,12 @@ import { RedisClient, RemoteRedisClient } from "./clients/RedisClient";
 import { config } from "./config";
 import logger from './logger';
 import { assetRoutes } from './routes/asset';
+import { authRoutes } from './routes/auth';
 import { cors } from '@elysiajs/cors';
 import { opentelemetry } from '@elysiajs/opentelemetry';
 import { swagger } from '@elysiajs/swagger';
+import { jwt } from '@elysiajs/jwt';
+import { cookie } from '@elysiajs/cookie';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { S3Client } from "./clients/S3Client";
@@ -33,6 +36,15 @@ app.use(cors({
 app.use(swagger())
 
 // @ts-ignore - Suppress TypeScript errors for plugin compatibility
+app.use(jwt({
+  name: 'jwt',
+  secret: process.env.JWT_SECRET || 'super-secret-key-change-in-production',
+}));
+
+// @ts-ignore - Suppress TypeScript errors for plugin compatibility
+app.use(cookie());
+
+// @ts-ignore - Suppress TypeScript errors for plugin compatibility
 app.use(opentelemetry({
   serviceName: 'skystore-server',
   spanProcessors: [
@@ -53,6 +65,7 @@ app.onRequest(({ request }) => {
   logger.info(`${method} ${url} ${userAgent}`);
 });
 app.use(assetRoutes);
+app.use(authRoutes);
 
 // Start the server
 app.listen(4000);
