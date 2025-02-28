@@ -32,8 +32,10 @@ import {
   IconFileReport,
 } from '@tabler/icons-react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
-import { useMissions, useProject, useAssets, useGetThumbnailUrl } from '../api/hooks';
-import { Mission } from '../api/client';
+import { useMissions } from '../hooks/useMissionHooks';
+import { useProject } from '../hooks/useProjectHook';
+import { useAssets, useGetThumbnailUrl } from '../hooks/useAssetHooks';
+import { Mission } from '@skystore/core_types';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
@@ -117,7 +119,6 @@ function MissionCard({
 
   return (
     <Card 
-      key={mission.mission} 
       withBorder
       className="neo-glass home-animate"
       padding="lg"
@@ -244,7 +245,7 @@ export function SelectMission() {
   } = useMissions(organization, project);
 
   // Fetch all assets for the current project
-  const { data: allAssets = [] } = useAssets(organization, project);
+  const { data: allAssets = [] } = useAssets(organization, project, '');
 
   const isLoading = projectLoading || missionsLoading;
   const error = projectError || missionsError;

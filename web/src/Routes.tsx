@@ -12,7 +12,7 @@ import { MissionDashboard } from './pages/MissionDashboard';
 import { MissionAssets } from './pages/MissionAssets';
 import { Profile } from './pages/Profile';
 import { Settings } from './pages/Settings';
-import Tasks from './pages/Tasks';
+import { Tasks } from './pages/Tasks';
 import { Home } from './pages/Home';
 
 export function AppRoutes() {

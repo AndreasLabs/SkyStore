@@ -30,8 +30,8 @@ import {
   IconDatabase,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
-import { useOrganizations } from '../api/hooks';
-import { useCurrentUser } from '../contexts/UserContext';
+import { useOrganizations } from '../hooks/useOrganizationHooks';
+
 
 // Custom styles
 const useStyles = createStyles((theme) => ({

@@ -8,7 +8,7 @@ import {
   IconSettings,
   IconChecklist,
 } from '@tabler/icons-react';
-import { useMission } from '../../api/hooks';
+import { useMission } from '../../hooks/useMissionHooks';
 
 interface NavItemProps {
   label: string;

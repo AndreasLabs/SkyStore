@@ -1,4 +1,6 @@
 export interface Mission {
+  uuid: string;
+  key: string;
   name: string;
   location: string;
   date: string; // ISO string
@@ -6,9 +8,9 @@ export interface Mission {
 }
 
 export interface CreateMissionParams {
-  organization: string;
-  project: string;
-  mission: string;
+  organization_key: string;
+  project_key: string;
+  mission_key: string;
 }
 
 export interface CreateMissionBody extends Mission {} 

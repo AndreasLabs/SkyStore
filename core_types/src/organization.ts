@@ -1,14 +1,19 @@
 export interface Organization {
-  id: string;
+  uuid: string;
+  key: string;
   name: string;
-  description: string;
-  metadata: Record<string, string>;
+  description?: string;
+  metadata?: Record<string, string>;
 }
 
 export interface CreateOrganizationParams {
-  organization: string;
+  organization_key: string;
 }
 
-export interface CreateOrganizationBody extends Organization {}
+export interface CreateOrganizationBody {
+  name: string;
+  description: string;
+  metadata?: Record<string, string>;
+}
 
 export interface UpdateOrganizationBody extends Partial<Organization> {} 

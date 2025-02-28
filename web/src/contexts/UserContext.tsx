@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useUser } from '../api/hooks';
+import { useUser } from '../hooks/useUserHooks';
 import { User } from '../api/client';
 
 interface UserContextType {

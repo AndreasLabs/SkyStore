@@ -1,6 +1,7 @@
 export interface Asset {
-  id: string;
-  originalName: string;
+  uuid: string;
+  key: string;
+  name: string;
   contentType: string;
   size: number;
   path: string;

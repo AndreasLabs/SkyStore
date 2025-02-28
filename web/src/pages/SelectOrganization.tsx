@@ -1,26 +1,64 @@
+// @ts-nocheck
 import React from 'react';
-import { 
-  Title, 
-  Text, 
-  Card, 
-  Stack,
+import {
+  Container,
+  Grid,
+  Card,
+  Text,
   Button,
   Group,
+  Stack,
+  Loader,
+  Center,
+  Title,
   ThemeIcon,
   SimpleGrid,
-  Container,
-  Center,
   Box,
 } from '@mantine/core';
 import { IconBuildingSkyscraper, IconPlus } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
-import { useOrganizations } from '../api/hooks';
+import { useOrganizations } from '../hooks/useOrganizationHooks';
+import { Organization } from '@skystore/core_types';
 import { useCurrentUser } from '../contexts/UserContext';
+import { useCurrentOrganization } from '../hooks/useCurrentOrganization';
+import { loggers } from '../utils/logger';
+
+const log = loggers.organization;
 
 export function SelectOrganization() {
   const navigate = useNavigate();
   const { data: organizations = [], isLoading } = useOrganizations();
   const { user } = useCurrentUser();
+  const { setOrganization } = useCurrentOrganization();
+
+  const handleOrganizationSelect = (orgKey: string | null) => {
+    log.info('Organization selection clicked', {
+      orgKey,
+      currentPath: window.location.pathname,
+      isUnselect: !orgKey
+    });
+
+    setOrganization(orgKey);
+    
+    // Only navigate to project selection if we're selecting an organization
+    if (orgKey) {
+      log.info('Navigating after org selection', {
+        orgKey,
+        destination: `/org/${orgKey}`
+      });
+      // Navigate directly without setTimeout since setOrganization handles the state update
+      navigate(`/org/${orgKey}`);
+    }
+    // Navigation for unselect is handled in the hook
+  };
+
+  log.info('Rendering SelectOrganization', {
+    organizationCount: organizations.length,
+    isLoading,
+    currentUser: user?.name
+  });
+
+  console.log('Organizations:', organizations);
 
   return (
     <Box h="100%" pt={100}>
@@ -69,42 +107,45 @@ export function SelectOrganization() {
               </Card>
             ) : (
               <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
-                {organizations.map((org) => (
-                  <Card 
-                    key={org.key} 
-                    withBorder
-                    className="neo-glass"
-                    onClick={() => navigate(`/org/${org.key}`)}
-                    style={{ cursor: 'pointer' }}
-                    padding="lg"
-                  >
-                    <Stack gap="md">
-                      <Group>
-                        <ThemeIcon
-                          size={40}
-                          radius="md"
-                          className="glass-icon"
+                {organizations.map((org) => {
+                  const orgKey = org.key || org.id;
+                  return (
+                    <Card 
+                      key={orgKey} 
+                      withBorder
+                      className="neo-glass"
+                      onClick={() => handleOrganizationSelect(orgKey)}
+                      style={{ cursor: 'pointer' }}
+                      padding="lg"
+                    >
+                      <Stack gap="md">
+                        <Group>
+                          <ThemeIcon
+                            size={40}
+                            radius="md"
+                            className="glass-icon"
+                          >
+                            <IconBuildingSkyscraper size={24} />
+                          </ThemeIcon>
+                          <Text fw={500} size="lg">{org.name}</Text>
+                        </Group>
+                        <Text size="sm" c="dimmed" lineClamp={2}>
+                          {org.description}
+                        </Text>
+                        <Button 
+                          variant="light" 
+                          fullWidth
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOrganizationSelect(orgKey);
+                          }}
                         >
-                          <IconBuildingSkyscraper size={24} />
-                        </ThemeIcon>
-                        <Text fw={500} size="lg">{org.name}</Text>
-                      </Group>
-                      <Text size="sm" c="dimmed" lineClamp={2}>
-                        {org.description}
-                      </Text>
-                      <Button 
-                        variant="light" 
-                        fullWidth
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/org/${org.key}`);
-                        }}
-                      >
-                        View Projects
-                      </Button>
-                    </Stack>
-                  </Card>
-                ))}
+                          View Projects
+                        </Button>
+                      </Stack>
+                    </Card>
+                  );
+                })}
               </SimpleGrid>
             )}
           </Stack>

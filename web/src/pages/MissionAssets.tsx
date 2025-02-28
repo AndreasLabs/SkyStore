@@ -4,7 +4,8 @@ import { IconUpload, IconPhoto, IconInfoCircle } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { AssetGrid } from '../components/AssetGrid';
-import { useMissions, useAssets, useUploadAsset, useGetThumbnailUrl } from '../api/hooks';
+import { useMissions } from '../hooks/useMissionHooks';
+import { useAssets, useCreateAsset } from '../hooks/useAssetHooks';
 
 export function MissionAssets() {
   const navigate = useNavigate();
@@ -29,18 +30,15 @@ export function MissionAssets() {
   );
 
   // Mutation hook
-  const { mutateAsync: uploadAsset, isPending: isUploading } = useUploadAsset();
+  const { mutateAsync: createAsset, isPending: isUploading } = useCreateAsset();
   const [uploadProgress, setUploadProgress] = React.useState(0);
 
   // Initialize selected mission
   React.useEffect(() => {
     if (missions.length > 0 && !selectedMission) {
-      setSelectedMission(missions[0].mission);
+      setSelectedMission(missions[0].key);
     }
   }, [missions]);
-
-  // Get thumbnail URL helper
-  const getThumbnailUrl = useGetThumbnailUrl();
 
   const handleFileUpload = async (files: File[] | null) => {
     if (!files || !organization || !project || !selectedMission) return;
@@ -50,10 +48,10 @@ export function MissionAssets() {
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        await uploadAsset({ 
-          organization, 
-          project, 
-          mission: selectedMission, 
+        await createAsset({ 
+          orgKey: organization, 
+          projectKey: project, 
+          missionKey: selectedMission, 
           file 
         });
         setUploadProgress(((i + 1) / files.length) * 100);
@@ -111,7 +109,7 @@ export function MissionAssets() {
           <Group>
             <Select
               placeholder="Select a mission"
-              data={missions.map(m => ({ value: m.mission, label: m.name }))}
+              data={missions.map(m => ({ value: m.key, label: m.name }))}
               value={selectedMission}
               onChange={setSelectedMission}
               style={{ minWidth: 250 }}
@@ -202,10 +200,10 @@ export function MissionAssets() {
             organization={organization || ''}
             project={project || ''}
             mission={selectedMission}
-            getThumbnailUrl={(asset) => getThumbnailUrl(asset, organization || '', project || '', selectedMission)}
+            getThumbnailUrl={(asset) => asset.thumbnailUrl || asset.presignedUrl}
           />
         )}
       </Stack>
     </Container>
   );
-} 
+}

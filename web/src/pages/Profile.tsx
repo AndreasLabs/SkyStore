@@ -14,15 +14,12 @@ import {
   LoadingOverlay,
   Paper,
 } from '@mantine/core';
-import { useUser, useUpdateUser } from '../api/hooks/useUser';
-import { apiClient } from '../api/client';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useUpdateUser, useUser, useCreateUser } from '../hooks/useUserHooks';
+import { useCurrentUser } from '../contexts/UserContext';
 import { notifications } from '@mantine/notifications';
 import { IconCheck } from '@tabler/icons-react';
-import { useCurrentUser } from '../contexts/UserContext';
 
 function CreateUserForm() {
-  const queryClient = useQueryClient();
   const { setCurrentUserId } = useCurrentUser();
   const [formData, setFormData] = React.useState({
     name: '',
@@ -33,37 +30,27 @@ function CreateUserForm() {
     website: '',
   });
 
-  const createUserMutation = useMutation({
-    mutationFn: async () => {
-      const id = crypto.randomUUID();
-      const response = await apiClient.createUser({
-        ...formData,
-        id,
-      });
-      return response;
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(['users', 'detail', data.id], data);
-      setCurrentUserId(data.id);
-      notifications.show({
-        title: 'Success',
-        message: 'User profile created successfully',
-        color: 'green',
-        icon: <IconCheck size={16} />,
-      });
-    },
-    onError: (error) => {
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to create user profile',
-        color: 'red',
-      });
-    },
-  });
+  const createUserMutation = useCreateUser();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createUserMutation.mutate();
+    createUserMutation.mutateAsync({ ...formData, id: crypto.randomUUID() })
+      .then(data => {
+        setCurrentUserId(data.uuid);
+        notifications.show({
+          title: 'Success',
+          message: 'User profile created successfully',
+          color: 'green',
+          icon: <IconCheck size={16} />,
+        });
+      })
+      .catch(error => {
+        notifications.show({
+          title: 'Error',
+          message: error instanceof Error ? error.message : 'Failed to create user profile',
+          color: 'red',
+        });
+      });
   };
 
   return (
@@ -124,8 +111,8 @@ function CreateUserForm() {
                 onChange={(e) => setFormData({ ...formData, website: e.target.value })}
               />
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 loading={createUserMutation.isPending}
                 mt="md"
               >
@@ -140,15 +127,22 @@ function CreateUserForm() {
 }
 
 export function Profile() {
-  const { user: currentUser, isLoading, error } = useCurrentUser();
+  const { user: currentUserId, isLoading: contextLoading, error: contextError, setCurrentUser } = useCurrentUser();
+  const { data: currentUser, isLoading: userLoading, error: userError } = useUser(currentUserId || '');
   const updateUserMutation = useUpdateUser();
   const [isEditing, setIsEditing] = React.useState(false);
 
+  const updateUserInPlace = (updates: React.SetStateAction<Partial<typeof currentUser>>) => {
+    if (currentUser) {
+      setCurrentUser({ ...currentUser, ...(typeof updates === 'function' ? updates(currentUser) : updates) });
+    }
+  };
+
   const handleSave = () => {
     if (!currentUser) return;
-    
+
     updateUserMutation.mutate({
-      id: currentUser.id,
+      uuid: currentUser.uuid,
       data: {
         name: currentUser.name,
         email: currentUser.email,
@@ -162,7 +156,7 @@ export function Profile() {
     });
   };
 
-  if (isLoading) {
+  if (contextLoading || userLoading) {
     return (
       <Container size="md" py="xl">
         <LoadingOverlay visible={true} />
@@ -170,7 +164,7 @@ export function Profile() {
     );
   }
 
-  if (error || !currentUser) {
+  if (contextError || userError || !currentUser) {
     return <CreateUserForm />;
   }
 
@@ -214,19 +208,19 @@ export function Profile() {
                   <TextInput
                     label="Full Name"
                     value={currentUser.name}
-                    onChange={(e) => currentUser.name = e.target.value}
+                    onChange={(e) => updateUserInPlace({ name: e.target.value })}
                   />
                   <TextInput
                     label="Email"
                     value={currentUser.email}
-                    onChange={(e) => currentUser.email = e.target.value}
+                    onChange={(e) => updateUserInPlace({ email: e.target.value })}
                   />
                 </Group>
 
                 <Textarea
                   label="Bio"
                   value={currentUser.bio}
-                  onChange={(e) => currentUser.bio = e.target.value}
+                  onChange={(e) => updateUserInPlace({ bio: e.target.value })}
                   minRows={3}
                 />
 
@@ -234,26 +228,26 @@ export function Profile() {
                   <TextInput
                     label="Location"
                     value={currentUser.location}
-                    onChange={(e) => currentUser.location = e.target.value}
+                    onChange={(e) => updateUserInPlace({ location: e.target.value })}
                   />
                   <TextInput
                     label="Company"
                     value={currentUser.company}
-                    onChange={(e) => currentUser.company = e.target.value}
+                    onChange={(e) => updateUserInPlace({ company: e.target.value })}
                   />
                 </Group>
 
                 <TextInput
                   label="Website"
                   value={currentUser.website}
-                  onChange={(e) => currentUser.website = e.target.value}
+                  onChange={(e) => updateUserInPlace({ website: e.target.value })}
                 />
 
                 <Group justify="flex-end">
                   <Button variant="light" onClick={() => setIsEditing(false)}>
                     Cancel
                   </Button>
-                  <Button 
+                  <Button
                     onClick={handleSave}
                     loading={updateUserMutation.isPending}
                   >

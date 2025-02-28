@@ -39,93 +39,46 @@ import {
   IconAspectRatio,
 } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { apiClient, Mission, Asset, Task } from '../api/client';
 import { notifications } from '@mantine/notifications';
 import { AssetGrid } from '../components/AssetGrid';
 import { LocationPicker } from '../components/LocationPicker';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMission, useTasks } from '../hooks/useMissionHooks';
+import { useGetThumbnailUrl, useAssets, useCreateAsset } from '../hooks/useAssetHooks';
 import { TaskCard } from '../components/TaskCard';
+import { Mission, Asset, Task } from '@skystore/core_types';
 
 export function MissionDashboard() {
   const navigate = useNavigate();
   const { organization, project, mission } = useParams();
-  const [missionData, setMissionData] = useState<Mission | null>(null);
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: missionData, isLoading: missionLoading, error: missionError } = useMission(organization, project, mission);
+  const { data: assets = [], isLoading: assetsLoading, error: assetsError } = useAssets(organization, project, mission);
+  const { data: tasks = [], isLoading: tasksLoading, error: tasksError } = useTasks(organization, project, mission);
+
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const queryClient = useQueryClient();
 
-  // Add tasks query
-  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
-    queryKey: ['tasks', organization, project, mission],
-    queryFn: () => {
-      if (!organization || !project || !mission) throw new Error('Missing parameters');
-      return apiClient.listTasks(organization, project, mission);
-    },
-    enabled: Boolean(organization && project && mission)
-  });
+  const createAssetMutation = useCreateAsset();
 
-  useEffect(() => {
-    if (organization && project && mission) {
-      loadMission();
-      loadAssets();
-    }
-  }, [organization, project, mission]);
-
-  const loadMission = async () => {
-    if (!organization || !project || !mission) return;
-
-    try {
-      setLoading(true);
-      const data = await apiClient.getMission(organization, project, mission);
-      setMissionData(data);
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to load mission',
-        color: 'red',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadAssets = async () => {
-    if (!organization || !project || !mission) return;
-
-    try {
-      const data = await apiClient.getMissionAssets(organization, project, mission);
-      setAssets(data || []);
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to load assets',
-        color: 'red',
-      });
-    }
-  };
+  const getThumbnailUrl = useGetThumbnailUrl();
 
   const handleFileUpload = async (files: File[] | null) => {
     if (!files || !organization || !project || !mission) return;
 
-    try {
-      setUploading(true);
-      setUploadProgress(0);
+    setUploading(true);
+    setUploadProgress(0);
 
+    try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        await apiClient.uploadAsset(organization, project, mission, file);
+        await createAssetMutation.mutateAsync({ orgKey: organization, projectKey: project, missionKey: mission, file });
         setUploadProgress(((i + 1) / files.length) * 100);
       }
-      
+
       notifications.show({
         title: 'Success',
         message: `${files.length} asset${files.length === 1 ? '' : 's'} uploaded successfully`,
         color: 'green',
       });
-
-      await loadAssets();
     } catch (error) {
       notifications.show({
         title: 'Error',
@@ -138,10 +91,24 @@ export function MissionDashboard() {
     }
   };
 
-  const getThumbnailUrl = (asset: Asset) => {
-    if (!organization || !project || !mission) return '';
-    return apiClient.getThumbnailUrl(organization, project, mission, asset.id);
-  };
+  const loading = missionLoading || assetsLoading;
+
+  useEffect(() => {
+    if (missionError) {
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to load mission',
+        color: 'red',
+      });
+    }
+    if (assetsError) {
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to load assets',
+        color: 'red',
+      });
+    }
+  }, [missionError, assetsError]);
 
   if (loading) {
     return (
@@ -188,7 +155,7 @@ export function MissionDashboard() {
                 <ActionIcon
                   variant="light"
                   size="lg"
-                  onClick={() => queryClient.invalidateQueries({ queryKey: ['tasks'] })}
+                  onClick={() => {}}
                 >
                   <IconRefresh size={18} />
                 </ActionIcon>
@@ -460,9 +427,13 @@ export function MissionDashboard() {
                         </Stack>
                       </Center>
                     ) : (
-                      tasks.map((task) => (
-                        <TaskCard key={task.id} task={task} />
-                      ))
+                      tasks.map((task) => {
+                        const extendedTask = {
+                            ...task,
+                            status: typeof task.status === 'string' ? { code: mapStatusToCode(task.status) } : task.status
+                        };
+                        return <TaskCard key={task.uuid} task={extendedTask} />;
+                    })
                     )}
                   </Stack>
                 </ScrollArea.Autosize>
@@ -473,4 +444,21 @@ export function MissionDashboard() {
       </Stack>
     </Container>
   );
+}
+
+function mapStatusToCode(status: string) {
+    switch (status) {
+        case 'pending':
+            return 10; // QUEUED
+        case 'in_progress':
+            return 20; // RUNNING
+        case 'failed':
+            return 30; // FAILED
+        case 'completed':
+            return 40; // COMPLETED
+        case 'canceled': // Assuming you have a 'canceled' status
+            return 50;  //CANCELED
+        default:
+            return 0; // UNKNOWN or default
+    }
 } 

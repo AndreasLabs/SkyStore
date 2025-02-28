@@ -1,5 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { createBaseRoute } from './base';
+import { userController } from '../controllers/user';
+import { State } from '../types/State';
 
 // Validation schemas
 const userSchema = t.Object({
@@ -24,27 +26,31 @@ const userSettingsSchema = t.Object({
 });
 
 export const userRoutes = createBaseRoute('/users')
-  .get('/', ({ query }) => {
-    // List users with pagination
+  .get('/', async ({ store }: { store: State }) => {
+    // List users
+    const users = await userController.listUsers({ redis: store.redis });
+    return users;
   })
-  .post('/', ({ body }) => {
+  .post('/', async ({ body, store }: { body: any, store: State }) => {
     // Create user
-  }, {
-    body: userSchema
+    const user = await userController.createUser(body, { redis: store.redis });
+    return user;
   })
   .get('/:id', ({ params }) => {
     // Get user by id
   })
-  .patch('/:id', ({ params, body }) => {
+  .put('/:key', async ({ params, body, store }: { params: { key: string }, body: any, store: State }) => {
     // Update user
-  }, {
-    body: userSchema
+    const user = await userController.updateUser(params.key, body, { redis: store.redis });
+    return user;
   })
   .patch('/:id/settings', ({ params, body }) => {
     // Update user settings
   }, {
     body: userSettingsSchema
   })
-  .delete('/:id', ({ params }) => {
+  .delete('/:key', async ({ params, store }: { params: { key: string }, store: State }) => {
     // Delete user
+    await userController.deleteUser(params.key, { redis: store.redis });
+    return { success: true };
   }); 

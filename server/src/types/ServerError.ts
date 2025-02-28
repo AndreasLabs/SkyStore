@@ -1,10 +1,11 @@
-class ServerError extends Error {
-  status: number;
-
-  constructor(message: string, status: number) {
+export class ServerError extends Error {
+  constructor(
+    message: string,
+    public status: number = 400,
+    public details?: Record<string, any>
+  ) {
     super(message);
     this.name = 'ServerError';
-    this.status = status;
   }
 
   toResponse() {
@@ -14,5 +15,3 @@ class ServerError extends Error {
     }
   }
 }
-
-export { ServerError };

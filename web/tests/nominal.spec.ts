@@ -119,26 +119,33 @@ const TEST_USER = {
 
 const TEST_ORGS = [
   {
-    id: 'test-org-1',
+    uuid: 'uuid-test-org-1',
+    key: 'test-org-1',
     name: 'Test Organization #1',
     description: 'This is the first test org!'
   },
   {
-    id: 'test-org-2',
+    uuid: 'uuid-test-org-2',
+    key: 'test-org-2',
     name: 'Test Organization #2',
     description: 'Test org 2'
   }
 ];
 
 const TEST_PROJECT = {
-  id: 'cool-project',
+  uuid: 'uuid-cool-project',
+  key: 'cool-project',
   name: 'Cool Project',
   description: 'my cool project'
 };
 
 const TEST_MISSION = {
-  id: 'cool-mission-1',
-  name: 'My Cool Mission'
+  uuid: 'uuid-cool-mission-1',
+  key: 'cool-mission-1',
+  name: 'My Cool Mission',
+  location: 'Test Location',
+  date: '2023-01-01T00:00:00Z',
+  metadata: {}
 };
 
 const TEST_ASSETS = [
@@ -216,7 +223,7 @@ async function createOrganization(page: Page, org: typeof TEST_ORGS[0]) {
   await page.waitForLoadState('networkidle');
   
   console.log('📝 Filling organization details...');
-  await page.getByRole('textbox', { name: 'Organization ID' }).fill(org.id);
+  await page.getByRole('textbox', { name: 'Organization ID' }).fill(org.key);
   await page.getByRole('textbox', { name: 'Name' }).fill(org.name);
   await page.getByRole('textbox', { name: 'Description' }).fill(org.description);
   
@@ -243,7 +250,7 @@ async function createProject(page: Page) {
   await createProjectButton.click();
   await page.waitForLoadState('networkidle');
 
-  await page.getByRole('textbox', { name: 'Project ID' }).fill(TEST_PROJECT.id);
+  await page.getByRole('textbox', { name: 'Project ID' }).fill(TEST_PROJECT.key);
   await page.getByRole('textbox', { name: 'Name' }).fill(TEST_PROJECT.name);
   await page.getByRole('textbox', { name: 'Description' }).fill(TEST_PROJECT.description);
   await page.getByRole('button', { name: 'Create Project' }).click();
@@ -290,7 +297,7 @@ async function createMission(page: Page) {
   await page.waitForLoadState('networkidle');
 
   console.log('📝 Filling mission details...');
-  await page.getByRole('textbox', { name: 'Mission ID' }).fill(TEST_MISSION.id);
+  await page.getByRole('textbox', { name: 'Mission ID' }).fill(TEST_MISSION.key);
   await page.getByRole('textbox', { name: 'Name' }).fill(TEST_MISSION.name);
   
   console.log('🗺️ Setting mission location on map...');
@@ -413,7 +420,7 @@ async function createMission(page: Page) {
   }
   
   // Verify the URL structure is correct
-  const expectedUrlPattern = new RegExp(`/org/${TEST_ORGS[0].id}/project/${TEST_PROJECT.id}/mission/${TEST_MISSION.id}`);
+  const expectedUrlPattern = new RegExp(`/org/${TEST_ORGS[0].key}/project/${TEST_PROJECT.key}/mission/${TEST_MISSION.key}`);
   expect(currentUrl).toMatch(expectedUrlPattern);
   console.log('✅ Mission URL structure is correct');
   

@@ -18,7 +18,8 @@ import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
-import { apiClient, Task } from '../../../api/client';
+import { apiClient } from '../../../api/apiClient';
+import { Task } from '@skystore/core_types';
 import { 
   IconPlayerPlay, 
   IconPlayerPause,
@@ -76,10 +77,10 @@ export function TaskCard({ task }: TaskCardProps) {
 
   // Poll for task status updates
   const { data: taskStatus } = useQuery({
-    queryKey: ['task-status', task.id],
+    queryKey: ['task-status', task.uuid],
     queryFn: async () => {
       if (!organization || !project || !mission) throw new Error('Missing parameters');
-      const response = await apiClient.getTaskStatus(organization, project, mission, task.id);
+      const response = await apiClient.getTaskStatus(organization, project, mission, task.uuid);
       return response;
     },
     enabled: Boolean(organization && project && mission && task.status === 'in_progress'),
@@ -88,10 +89,10 @@ export function TaskCard({ task }: TaskCardProps) {
  
   // Get console output
   const { data: consoleOutput, refetch: refetchLogs } = useQuery({
-    queryKey: ['task-output', task.id],
+    queryKey: ['task-output', task.uuid],
     queryFn: async () => {
       if (!organization || !project || !mission) throw new Error('Missing parameters');
-      const response = await apiClient.getTaskOutput(organization, project, mission, task.id, 0);
+      const response = await apiClient.getTaskOutput(organization, project, mission, task.uuid, 0);
       // Handle the response data which could be a string or array
       const outputText = JSON.parse(response[0]);
       return outputText;
@@ -104,10 +105,10 @@ export function TaskCard({ task }: TaskCardProps) {
   const pauseTaskMutation = useMutation({
     mutationFn: () => {
       if (!organization || !project || !mission) throw new Error('Missing parameters');
-      return apiClient.pauseTask(organization, project, mission, task.id);
+      return apiClient.pauseTask(organization, project, mission, task.uuid);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['task-status', task.id] });
+      queryClient.invalidateQueries({ queryKey: ['task-status', task.uuid] });
       notifications.show({
         title: 'Success',
         message: 'Task paused successfully',
@@ -126,10 +127,10 @@ export function TaskCard({ task }: TaskCardProps) {
   const resumeTaskMutation = useMutation({
     mutationFn: () => {
       if (!organization || !project || !mission) throw new Error('Missing parameters');
-      return apiClient.resumeTask(organization, project, mission, task.id);
+      return apiClient.resumeTask(organization, project, mission, task.uuid);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['task-status', task.id] });
+      queryClient.invalidateQueries({ queryKey: ['task-status', task.uuid] });
       notifications.show({
         title: 'Success',
         message: 'Task resumed successfully',
@@ -373,7 +374,7 @@ export function TaskCard({ task }: TaskCardProps) {
 
         <Group justify="space-between">
           <Text size="xs" c="dimmed">
-            ID: {currentTask.id.slice(0, 8)}
+            ID: {currentTask.uuid.slice(0, 8)}
           </Text>
 
           <Group gap="xs">

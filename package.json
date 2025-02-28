@@ -5,5 +5,8 @@
     "server",
     "web",
     "core_types"
-  ]
-} 
+  ],
+  "dependencies": {
+    "adze": "^2.2.1"
+  }
+}

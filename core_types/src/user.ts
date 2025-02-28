@@ -10,7 +10,8 @@ export interface UserSettings {
 }
 
 export interface User {
-  id: string;
+  uuid: string;
+  key: string;
   name: string;
   email: string;
   avatar?: string | null;
@@ -24,6 +25,7 @@ export interface User {
 
 export interface CreateUserBody {
   name: string;
+  key: string;
   email: string;
   avatar?: string | null;
   bio?: string;

@@ -11,6 +11,7 @@ import { taskRoutes } from './routes/task';
 import { assetRoutes } from './routes/asset';
 import { State } from "./types/State";
 import { opentelemetry } from '@elysiajs/opentelemetry'
+import { cors } from '@elysiajs/cors';
 
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto'
@@ -25,6 +26,12 @@ await storage.initialize();
 // Create base app with state
 const app = new Elysia()
 .use(
+  cors({
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  }),
   opentelemetry({
     serviceName: 'skystore-server',
     spanProcessors: [
@@ -50,7 +57,7 @@ const app = new Elysia()
   .use(projectRoutes)
   .use(taskRoutes)
   .use(assetRoutes)
-  .listen(3000);
+  .listen(4000);
 
 logger.info(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`

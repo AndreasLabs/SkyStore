@@ -21,7 +21,7 @@ import {
   Icon3dCubeSphere,
   IconFileReport,
 } from '@tabler/icons-react';
-import { Asset } from '../../../api/client';
+import { Asset } from '@skystore/core_types';
 
 interface AssetGridProps {
   assets: Asset[];
@@ -71,7 +71,7 @@ export function AssetGrid({ assets, onView, onDownload, onDelete }: AssetGridPro
   return (
     <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="md">
       {assets.map((asset) => (
-        <Card key={asset.id} withBorder shadow="sm" padding="md" radius="md">
+        <Card key={asset.uuid} withBorder shadow="sm" padding="md" radius="md">
           <Card.Section>
             {asset.thumbnailUrl ? (
               <Image

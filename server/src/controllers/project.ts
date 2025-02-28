@@ -45,12 +45,12 @@ export const projectController = {
         }
 
         // Validate project and org keys
-        if (!verifyProjectKey(project.key)) {
+        if (!verifyProjectKey(project.key || '')) {
             logger.error('Invalid project key, must be alphanumeric and have no spaces and only dashes');
             throw new ServerError('Invalid project key, must be alphanumeric and have no spaces and only dashes', 400);
         }
 
-        if (!verifyProjectKey(project.organization_key)) {
+        if (!verifyProjectKey(project.organization_key || '')) {
             logger.error('Invalid organization key, must be alphanumeric and have no spaces and only dashes');
             throw new ServerError('Invalid organization key, must be alphanumeric and have no spaces and only dashes', 400);
         }

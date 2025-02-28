@@ -1,5 +1,8 @@
 import { Elysia, t } from 'elysia';
 import { createBaseRoute } from './base';
+import { taskController } from '../controllers/task';
+import { RedisClient } from '../clients/RedisClient';
+import { State } from '../types/State';
 
 const taskSchema = t.Object({
   name: t.String(),
@@ -13,32 +16,40 @@ const taskSchema = t.Object({
   missionId: t.String()
 });
 
+const paramsSchema = t.Object({
+  org_key: t.String(),
+  project_key: t.String(),
+  mission_key: t.String()
+});
+
 export const taskRoutes = createBaseRoute('/org/:org_key/project/:project_key/mission/:mission_key/tasks')
-  .get('/', ({ params }) => {
-    // List tasks
-  })
-  .post('/', ({ params, body }) => {
-    // Create task
+  .get('/', async ({ params, store }: { params: { mission_key: string }, store: State }) => {
+    // List tasks for mission
+    const tasks = await taskController.getTasksForMission(params.mission_key, { redis: store.redis });
+    return tasks;
   }, {
-    body: taskSchema
+    params: paramsSchema
   })
-  .get('/:id', ({ params }) => {
-    // Get task
-  })
-  .get('/:id/status', ({ params }) => {
-    // Get task status
-  })
-  .patch('/:id', ({ params, body }) => {
-    // Update task
+  .post('/', async ({ params, body, store }: { params: { mission_key: string }, body: any, store: State }) => {
+    // Create new task
+    const task = await taskController.createTask({
+      ...body,
+      missionId: params.mission_key
+    }, { redis: store.redis });
+    return task;
   }, {
-    body: taskSchema
+    body: taskSchema,
+    params: paramsSchema
   })
-  .post('/:id/pause', ({ params }) => {
-    // Pause task
+  .post('/:task_id/cancel', async ({ params, store }: { params: { mission_key: string, task_id: string }, store: State }) => {
+    // Cancel task
+    const task = await taskController.cancelTask(params.task_id, params.mission_key, { redis: store.redis });
+    return task;
+  }, {
+    params: t.Object({
+      ...paramsSchema.properties,
+      task_id: t.String()
+    })
   })
-  .post('/:id/resume', ({ params }) => {
-    // Resume task
-  })
-  .delete('/:id', ({ params }) => {
-    // Delete task
-  }); 
+
+  

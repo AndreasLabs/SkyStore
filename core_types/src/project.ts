@@ -2,7 +2,7 @@ export interface Project {
   uuid: string;
   key: string;
   name: string;
-  description: string;
+  description?: string;
   metadata: Record<string, string>;
   createdAt: Date;
   updatedAt: Date;

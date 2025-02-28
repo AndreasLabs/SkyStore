@@ -1,52 +1,67 @@
 import React from 'react';
-import { 
-  Container, 
-  Title, 
-  Text, 
-  Stack,
+import {
+  Container,
+  Grid,
   Card,
+  Text,
+  Button,
+  Group,
+  Stack,
+  Loader,
+  Center,
+  Title,
+  TextInput,
+  Select,
   Switch,
   ColorPicker,
   Slider,
   SegmentedControl,
-  Group,
-  Button,
   Divider,
-  TextInput,
-  Select,
   LoadingOverlay,
 } from '@mantine/core';
 import { useCurrentUser } from '../contexts/UserContext';
-import { useUpdateUserSettings } from '../api/hooks/useUser';
+import { useUpdateUserSettings } from '../hooks/useUserHooks';
+import { User } from '@skystore/core_types';
 
 export function Settings() {
-  const { user: currentUser, isLoading } = useCurrentUser();
+  const { user: currentUser, isLoading, refetch } = useCurrentUser();
   const updateSettingsMutation = useUpdateUserSettings();
-  const [settings, setSettings] = React.useState({
-    darkMode: true,
-    accentColor: '#1971c2',
-    notifications: true,
-    emailNotifications: true,
-    autoSave: true,
-    language: 'en',
-    timezone: 'UTC',
-    mapStyle: 'satellite',
-  });
 
-  // Initialize settings from user data
+  // Initialize settings from user data, or use defaults if not loaded
+  const [settings, setSettings] = React.useState(
+    currentUser?.settings || {
+      darkMode: true,
+      accentColor: '#1971c2',
+      notifications: true,
+      emailNotifications: true,
+      autoSave: true,
+      language: 'en',
+      timezone: 'UTC',
+      mapStyle: 'satellite',
+    }
+  );
+
+  // Update local settings when currentUser changes
   React.useEffect(() => {
-    if (currentUser) {
+    if (currentUser?.settings) {
       setSettings(currentUser.settings);
     }
   }, [currentUser]);
 
   const handleSave = () => {
     if (!currentUser) return;
-    
-    updateSettingsMutation.mutate({
-      id: currentUser.id,
-      data: settings
-    });
+
+    updateSettingsMutation.mutate(
+      {
+        id: currentUser.id,
+        data: settings,
+      },
+      {
+        onSuccess: () => {
+          refetch(); // Refetch user data after update
+        },
+      }
+    );
   };
 
   if (isLoading) {
@@ -83,9 +98,11 @@ export function Settings() {
                     <Text>Dark Mode</Text>
                     <Text size="sm" c="dimmed">Toggle dark/light theme</Text>
                   </div>
-                  <Switch 
+                  <Switch
                     checked={settings.darkMode}
-                    onChange={(e) => setSettings({ ...settings, darkMode: e.currentTarget.checked })}
+                    onChange={(e) =>
+                      setSettings({ ...settings, darkMode: e.currentTarget.checked })
+                    }
                   />
                 </Group>
 
@@ -94,7 +111,9 @@ export function Settings() {
                   <ColorPicker
                     format="hex"
                     value={settings.accentColor}
-                    onChange={(color) => setSettings({ ...settings, accentColor: color })}
+                    onChange={(color) =>
+                      setSettings({ ...settings, accentColor: color })
+                    }
                   />
                 </div>
 
@@ -102,7 +121,9 @@ export function Settings() {
                   <Text size="sm" mb="xs">Map Style</Text>
                   <SegmentedControl
                     value={settings.mapStyle}
-                    onChange={(value) => setSettings({ ...settings, mapStyle: value })}
+                    onChange={(value) =>
+                      setSettings({ ...settings, mapStyle: value as string })
+                    }
                     data={[
                       { label: 'Satellite', value: 'satellite' },
                       { label: 'Streets', value: 'streets' },
@@ -121,11 +142,18 @@ export function Settings() {
                 <Group justify="space-between">
                   <div>
                     <Text>Push Notifications</Text>
-                    <Text size="sm" c="dimmed">Get notified about important updates</Text>
+                    <Text size="sm" c="dimmed">
+                      Get notified about important updates
+                    </Text>
                   </div>
-                  <Switch 
+                  <Switch
                     checked={settings.notifications}
-                    onChange={(e) => setSettings({ ...settings, notifications: e.currentTarget.checked })}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        notifications: e.currentTarget.checked,
+                      })
+                    }
                   />
                 </Group>
 
@@ -134,9 +162,14 @@ export function Settings() {
                     <Text>Email Notifications</Text>
                     <Text size="sm" c="dimmed">Receive email updates</Text>
                   </div>
-                  <Switch 
+                  <Switch
                     checked={settings.emailNotifications}
-                    onChange={(e) => setSettings({ ...settings, emailNotifications: e.currentTarget.checked })}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        emailNotifications: e.currentTarget.checked,
+                      })
+                    }
                   />
                 </Group>
               </Stack>
@@ -150,7 +183,9 @@ export function Settings() {
                 <Select
                   label="Language"
                   value={settings.language}
-                  onChange={(value) => setSettings({ ...settings, language: value || 'en' })}
+                  onChange={(value) =>
+                    setSettings({ ...settings, language: value || 'en' })
+                  }
                   data={[
                     { value: 'en', label: 'English' },
                     { value: 'es', label: 'Spanish' },
@@ -161,7 +196,9 @@ export function Settings() {
                 <Select
                   label="Timezone"
                   value={settings.timezone}
-                  onChange={(value) => setSettings({ ...settings, timezone: value || 'UTC' })}
+                  onChange={(value) =>
+                    setSettings({ ...settings, timezone: value || 'UTC' })
+                  }
                   data={[
                     { value: 'UTC', label: 'UTC' },
                     { value: 'EST', label: 'Eastern Time' },
@@ -174,9 +211,11 @@ export function Settings() {
                     <Text>Auto-save</Text>
                     <Text size="sm" c="dimmed">Automatically save changes</Text>
                   </div>
-                  <Switch 
+                  <Switch
                     checked={settings.autoSave}
-                    onChange={(e) => setSettings({ ...settings, autoSave: e.currentTarget.checked })}
+                    onChange={(e) =>
+                      setSettings({ ...settings, autoSave: e.currentTarget.checked })
+                    }
                   />
                 </Group>
               </Stack>
@@ -185,14 +224,14 @@ export function Settings() {
             <Divider />
 
             <Group justify="flex-end">
-              <Button 
-                variant="light" 
+              <Button
+                variant="light"
                 onClick={() => window.history.back()}
                 disabled={updateSettingsMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={handleSave}
                 loading={updateSettingsMutation.isPending}
               >

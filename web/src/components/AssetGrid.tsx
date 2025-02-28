@@ -41,7 +41,7 @@ import {
   IconSortDescending,
   IconChevronRight,
 } from '@tabler/icons-react';
-import { Asset } from '../api/client';
+import { Asset } from '@skystore/core_types';
 
 interface AssetGridProps {
   assets: Asset[];
@@ -154,7 +154,7 @@ export function AssetGrid({ assets, organization, project, mission, getThumbnail
   const renderAssetCard = (asset: Asset) => {
     const FileIcon = getFileIcon(asset);
     return (
-      <Card key={asset.id} withBorder padding="lg" radius="md">
+      <Card key={asset.uuid} withBorder padding="lg" radius="md">
         <Card.Section 
           style={{ cursor: 'pointer', position: 'relative' }} 
           onClick={() => handleView(asset)}
@@ -234,7 +234,7 @@ export function AssetGrid({ assets, organization, project, mission, getThumbnail
   const renderAssetList = (asset: Asset) => {
     const FileIcon = getFileIcon(asset);
     return (
-      <Card key={asset.id} withBorder padding="sm" radius="md">
+      <Card key={asset.uuid} withBorder padding="sm" radius="md">
         <Group justify="space-between" wrap="nowrap">
           <Group gap="sm" wrap="nowrap" style={{ flex: 1 }}>
             <Center w={40} h={40} bg="gray.1" style={{ borderRadius: 4 }}>

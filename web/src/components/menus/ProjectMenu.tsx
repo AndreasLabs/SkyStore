@@ -2,13 +2,14 @@ import React from 'react';
 import { Menu, Text, UnstyledButton, Group, Loader } from '@mantine/core';
 import { IconChevronDown, IconPlus, IconFolder } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useProjects } from '../../api/hooks';
+import { useProjects } from '../../hooks/useProjectHook';
 
 export function ProjectMenu() {
   const navigate = useNavigate();
   const { organization, project } = useParams();
-  const { data: projects = [], isLoading, error } = useProjects(organization || '');
-  const currentProject = projects.find(p => p.key === project);
+  const { data, isLoading, error } = useProjects(organization || '');
+  const projectsArray = Array.isArray(data) ? data : [];
+  const currentProject = projectsArray.find(p => p.key === project);
 
   if (!organization) return null;
 
@@ -32,10 +33,10 @@ export function ProjectMenu() {
           <Menu.Item disabled><Group justify="center"><Loader size="sm" /></Group></Menu.Item>
         ) : error ? (
           <Menu.Item disabled color="red"><Text size="sm" c="red">Failed to load projects</Text></Menu.Item>
-        ) : projects.length === 0 ? (
+        ) : projectsArray.length === 0 ? (
           <Menu.Item disabled><Text size="sm" c="dimmed">No projects found</Text></Menu.Item>
         ) : (
-          projects.map((proj) => (
+          projectsArray.map((proj) => (
             <Menu.Item 
               key={proj.key} 
               onClick={() => navigate(`/org/${organization}/project/${proj.key}`)}
