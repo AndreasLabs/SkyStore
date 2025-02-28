@@ -75,7 +75,7 @@ export class MinioClient {
             // Create standard folder structure
             const folders = [
                 '.keep',
-                'orgs/.keep'
+                'assets/.keep'
             ];
 
             for (const folder of folders) {
@@ -95,12 +95,11 @@ export class MinioClient {
     }
 
     /**
-     * Creates an organization folder structure
+     * Creates a user folder structure
      */
-    public async createOrgStructure(orgKey: string): Promise<void> {
+    public async createUserStructure(user_uuid: string): Promise<void> {
         const folders = [
-            `orgs/${orgKey}/.keep`,
-            `orgs/${orgKey}/projects/.keep`
+            `assets/${user_uuid}/.keep`,
         ];
 
         for (const folder of folders) {
@@ -114,12 +113,11 @@ export class MinioClient {
     }
 
     /**
-     * Creates a project folder structure
+     * Creates a assets folder structure
      */
-    public async createProjectStructure(orgKey: string, projectKey: string): Promise<void> {
+    public async createAssetsStructure(user_uuid: string, assetKey: string): Promise<void> {
         const folders = [
-            `orgs/${orgKey}/projects/${projectKey}/.keep`,
-            `orgs/${orgKey}/projects/${projectKey}/missions/.keep`
+            `assets/.keep`,
         ];
 
         for (const folder of folders) {
@@ -131,26 +129,6 @@ export class MinioClient {
             }
         }
     }
-
-    /**
-     * Creates a mission folder structure
-     */
-    public async createMissionStructure(orgKey: string, projectKey: string, missionKey: string): Promise<void> {
-        const folders = [
-            `orgs/${orgKey}/projects/${projectKey}/missions/${missionKey}/.keep`,
-            `orgs/${orgKey}/projects/${projectKey}/missions/${missionKey}/assets/.keep`
-        ];
-
-        for (const folder of folders) {
-            try {
-                await this.client.putObject(this.bucket, folder, '');
-                logger.info(`Created mission folder: ${folder}`);
-            } catch (error) {
-                logger.warn(`Folder ${folder} may already exist:`, error);
-            }
-        }
-    }
-
     /**
      * Lists all objects in a path
      */

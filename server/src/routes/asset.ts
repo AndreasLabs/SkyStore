@@ -1,95 +1,138 @@
 import { t } from 'elysia';
 import { createBaseRoute } from './base';
 import { assetController } from '../controllers/asset';
-import { Asset } from '@skystore/core_types';
-import { State } from '../types/State';
+import { ServerError } from '../types/ServerError';
 
-export const assetRoutes = createBaseRoute('/org/:org_key/project/:project_key/mission/:mission_key/assets')
-  // List assets for a mission
+// Update the route to a simpler path structure
+export const assetRoutes = createBaseRoute('/assets')
+  // List all assets for a user
   .get('/', 
-    async ({ params: { org_key, project_key, mission_key }, store }: {
-      params: { org_key: string, project_key: string, mission_key: string },
-      store: State
+    async ({ query, store }: {
+      query: { owner_uuid?: string, uploader_uuid?: string },
+      store: { redis: any }
     }) => {
-      const assets = await assetController.listMissionAssets(
-        org_key,
-        project_key,
-        mission_key,
-        store.redis
-      );
+      try {
+        // For now, we'll list by mission, but in the future this could be updated to filter by owner/uploader
+        const assets = await assetController.listUserAssets(query.owner_uuid || '');
 
-      return {
-        success: true,
-        data: assets
-      };
+        return {
+          success: true,
+          data: assets
+        };
+      } catch (error) {
+        if (error instanceof ServerError) {
+          return { 
+            success: false, 
+            error: error.message,
+            status: error.status
+          };
+        }
+        return { 
+          success: false, 
+          error: 'Failed to list assets',
+          status: 500 
+        };
+      }
     }, {
-      params: t.Object({
-        org_key: t.String(),
-        project_key: t.String(),
-        mission_key: t.String()
+      query: t.Object({
+        owner_uuid: t.Optional(t.String()),
+        uploader_uuid: t.Optional(t.String())
       })
     }
   )
 
   // Upload a new asset
   .post('/upload', 
-    async ({ params: { org_key, project_key, mission_key }, body, store }: { 
-      params: { org_key: string, project_key: string, mission_key: string }, 
-      body: { file: File }, 
-      store: State 
-    }) => {
-      const file = body.file;
-      if (!file || !(file instanceof File)) {
-        throw new Error('No file provided or invalid file');
+    async ({ body, set }: { 
+      body: { 
+        file: File, 
+        owner_uuid: string, 
+        uploader_uuid: string,
+        mission_uuid?: string
+      },
+      set: {
+        status: number;
+        headers: Record<string, string>;
       }
+    }) => {
+      try {
+        const { file, owner_uuid, uploader_uuid, mission_uuid } = body;
+        
+        if (!file || !(file instanceof File)) {
+          set.status = 400;
+          return {
+            success: false,
+            error: 'No file provided or invalid file'
+          };
+        }
 
-      const asset = await assetController.createAsset(
-        file,
-        org_key,
-        project_key,
-        mission_key,
-        store.redis
-      );
+        const asset = await assetController.createAsset(
+          file,
+          owner_uuid,
+          uploader_uuid,
+          mission_uuid
+        );
 
-      return {
-        success: true,
-        data: asset
-      };
+        return {
+          success: true,
+          data: asset
+        };
+      } catch (err) {
+        if (err instanceof ServerError) {
+          set.status = err.status;
+          return {
+            success: false,
+            error: err.message
+          };
+        }
+        set.status = 500;
+        return {
+          success: false,
+          error: 'Failed to upload asset'
+        };
+      }
     }, {
       body: t.Object({
-        file: t.Any() // File type from multipart form
-      }),
-      params: t.Object({
-        org_key: t.String(),
-        project_key: t.String(),
-        mission_key: t.String()
+        file: t.Any(), // File type from multipart form
+        owner_uuid: t.String(),
+        uploader_uuid: t.String(),
+        mission_uuid: t.Optional(t.String())
       })
     }
   )
 
   // Get asset by ID
   .get('/:id', 
-    async ({ params: { org_key, project_key, mission_key, id }, store }: {
-      params: { org_key: string, project_key: string, mission_key: string, id: string },
-      store: State
+    async ({ params: { id }, set }: {
+      params: { id: string },
+      set: {
+        status: number;
+        headers: Record<string, string>;
+      }
     }) => {
-      const asset = await assetController.getAssetById(
-        org_key,
-        project_key,
-        mission_key,
-        id,
-        store.redis
-      );
+      try {
+        const asset = await assetController.getAssetById(id);
 
-      return {
-        success: true,
-        data: asset
-      };
+        return {
+          success: true,
+          data: asset
+        };
+      } catch (err) {
+        if (err instanceof ServerError) {
+          set.status = err.status;
+          return {
+            success: false,
+            error: err.message
+          };
+        }
+        set.status = 500;
+        return {
+          success: false,
+          error: 'Failed to get asset'
+        };
+      }
     }, {
       params: t.Object({
-        org_key: t.String(),
-        project_key: t.String(),
-        mission_key: t.String(),
         id: t.String()
       })
     }
@@ -97,27 +140,113 @@ export const assetRoutes = createBaseRoute('/org/:org_key/project/:project_key/m
 
   // Delete an asset
   .delete('/:id', 
-    async ({ params: { org_key, project_key, mission_key, id }, store }: {
-      params: { org_key: string, project_key: string, mission_key: string, id: string },
-      store: State
+    async ({ params: { id }, set }: {
+      params: { id: string },
+      set: {
+        status: number;
+        headers: Record<string, string>;
+      }
     }) => {
-      await assetController.deleteAsset(
-        org_key,
-        project_key,
-        mission_key,
-        id,
-        store.redis
-      );
+      try {
+        await assetController.deleteAsset(id);
 
-      return {
-        success: true
-      };
+        return {
+          success: true
+        };
+      } catch (err) {
+        if (err instanceof ServerError) {
+          set.status = err.status;
+          return {
+            success: false,
+            error: err.message
+          };
+        }
+        set.status = 500;
+        return {
+          success: false,
+          error: 'Failed to delete asset'
+        };
+      }
     }, {
       params: t.Object({
-        org_key: t.String(),
-        project_key: t.String(),
-        mission_key: t.String(),
         id: t.String()
+      })
+    }
+  )
+  
+  // Add user access to an asset
+  .post('/:id/access', 
+    async ({ params: { id }, body, set }: {
+      params: { id: string },
+      body: { user_uuid: string },
+      set: {
+        status: number;
+        headers: Record<string, string>;
+      }
+    }) => {
+      try {
+        await assetController.addUserAccess(id, body.user_uuid);
+        
+        return {
+          success: true
+        };
+      } catch (err) {
+        if (err instanceof ServerError) {
+          set.status = err.status;
+          return {
+            success: false,
+            error: err.message
+          };
+        }
+        set.status = 500;
+        return {
+          success: false,
+          error: 'Failed to add user access'
+        };
+      }
+    }, {
+      params: t.Object({
+        id: t.String()
+      }),
+      body: t.Object({
+        user_uuid: t.String()
+      })
+    }
+  )
+  
+  // Remove user access from an asset
+  .delete('/:id/access/:user_uuid', 
+    async ({ params: { id, user_uuid }, set }: {
+      params: { id: string, user_uuid: string },
+      set: {
+        status: number;
+        headers: Record<string, string>;
+      }
+    }) => {
+      try {
+        await assetController.removeUserAccess(id, user_uuid);
+        
+        return {
+          success: true
+        };
+      } catch (err) {
+        if (err instanceof ServerError) {
+          set.status = err.status;
+          return {
+            success: false,
+            error: err.message
+          };
+        }
+        set.status = 500;
+        return {
+          success: false,
+          error: 'Failed to remove user access'
+        };
+      }
+    }, {
+      params: t.Object({
+        id: t.String(),
+        user_uuid: t.String()
       })
     }
   ); 

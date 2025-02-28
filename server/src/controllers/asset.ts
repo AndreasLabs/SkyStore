@@ -1,9 +1,15 @@
-import { Asset } from "@skystore/core_types";
-import { RedisClient } from "../clients/RedisClient";
+import { PrismaClient } from "@prisma/client";
+import prisma from "../lib/prisma";
 import { S3Client } from "../clients/S3Client";
 import logger from "../logger";
 import { ServerError } from "../types/ServerError";
 import { record } from '@elysiajs/opentelemetry';
+
+// Type aliasing for Asset from Prisma
+type Asset = Awaited<ReturnType<PrismaClient["asset"]["findUnique"]>>;
+type AssetWithRelations = Asset & {
+  mission?: { uuid: string; name: string; description: string | null } | null;
+}
 
 // Accepted MIME types for upload
 const ACCEPTED_MIME_TYPES = new Set([
@@ -19,36 +25,37 @@ const ACCEPTED_MIME_TYPES = new Set([
     'application/octet-stream', // For .obj, .fbx etc
     'text/plain', // For .obj, .mtl
     'application/x-tgif', // .obj
+
+    // Video
+    'video/mp4',
+    'video/webm',
+    'video/quicktime',
+    'video/x-msvideo',
+    'video/x-m4v',
+    
+
+    // Point Cloud
+    'application/octet-stream', // For .ply, .las, .laz, .pcd, .npy, .npz, .ply.gz, .las.gz, .laz.gz, .pcd.gz, .npy.gz, .npz.gz
 ]);
 
 /**
- * Controller for managing assets in Redis and S3
+ * Controller for managing assets using Prisma and S3
  */
 export const assetController = {
     /**
      * Creates a new asset from an uploaded file
      * 
      * @param file - The uploaded file data
-     * @param orgKey - Organization key
-     * @param projectKey - Project key
-     * @param missionKey - Mission key
-     * @param redis - Redis client
-     * 
-     * Storage in Redis:
-     * - Asset info: `orgs:${orgKey}:projects:${projectKey}:missions:${missionKey}:assets:${assetId}:info`
-     * 
-     * Storage in S3:
-     * - File: `orgs/${orgKey}/projects/${projectKey}/missions/${missionKey}/assets/${assetId}`
+     * @param missionUuid - Optional mission UUID
      * 
      * @returns The created asset metadata
      */
     createAsset: async (
         file: File,
-        orgKey: string,
-        projectKey: string,
-        missionKey: string,
-        redis: RedisClient
-    ): Promise<Asset> => {
+        ownerUuid: string,
+        uploaderUuid: string,
+        missionUuid?: string,
+    ): Promise<AssetWithRelations> => {
         // Validate file type
         if (!ACCEPTED_MIME_TYPES.has(file.type)) {
             logger.error(`Invalid file type: ${file.type}`);
@@ -61,58 +68,51 @@ export const assetController = {
         return record('asset.create', async (span) => {
             try {
                 const s3Client = S3Client.getInstance();
+                const extension = getFileExtension(file.name);
                 
-                // Ensure folder structure exists
-                await s3Client.ensureMissionStructure(orgKey, projectKey, missionKey);
-                
-                // Upload to S3
-                const s3Path = `missions/${missionKey}/assets/${assetId}${getFileExtension(file.name)}`;
-                logger.info(`Uploading file to S3: ${s3Path}`);
-                await s3Client.uploadProjectFile(
-                    orgKey,
-                    projectKey,
-                    s3Path,
+                // Upload file to storage using the simplified path
+                const stored_path = await s3Client.uploadProjectFile(
+                    ownerUuid,
+                    assetId + extension,
                     file,
                     file.type
                 );
 
-                // Create asset metadata
-                const asset: Asset = {
-                    id: assetId,
-                    originalName: file.name,
-                    contentType: file.type,
-                    size: file.size,
-                    path: s3Path,
-                    uploadedAt: new Date().toISOString(),
-                    presignedUrl: s3Client.getDownloadUrl(
-                        orgKey,
-                        projectKey,
-                        s3Path
-                    ),
-                    directUrl: `s3://${orgKey}/${projectKey}/${s3Path}`
-                };
+                logger.info(`Asset ${assetId} uploaded to ${stored_path}`);
+                
+                // Generate download URL
+                const downloadUrl = s3Client.getDownloadUrl(stored_path);
+                
+                // Generate thumbnail URL if applicable
+                const thumbnailUrl = generateThumbnailUrl(stored_path, file.type);
 
-                // Save metadata to Redis
-                const redisPath = `orgs:${orgKey}:projects:${projectKey}:missions:${missionKey}:assets:${assetId}`;
-                await redis.setObject(`${redisPath}:info`, JSON.parse(JSON.stringify(asset)));
-
-                // Add to mission's assets set
-                await redis.sadd(
-                    `orgs:${orgKey}:projects:${projectKey}:missions:${missionKey}:assets:members`,
-                    assetId
-                );
-
-                await redis.publish(`asset:event_created`, JSON.stringify(asset));
-
+                // Create asset in database using Prisma
+                const asset = await prisma.asset.create({
+                    data: {
+                        uuid: assetId,
+                        name: file.name,
+                        stored_path: stored_path,
+                        file_type: file.type,
+                        extension: extension.substring(1), // Remove the dot
+                        size_bytes: file.size,
+                        download_url: downloadUrl,
+                        thumbnail_url: thumbnailUrl,
+                        mission_uuid: missionUuid,
+                        owner_uuid: ownerUuid,
+                        uploader_uuid: uploaderUuid,
+                        access_uuids: [ownerUuid], // By default, owner has access
+                    },
+                    include: {
+                        mission: false,
+                    }
+                });
+                
                 logger.info(`Asset ${assetId} created successfully`);
                 return asset;
             } catch (error) {
                 logger.error('Failed to create asset:', {
                     error: error instanceof Error ? error.message : String(error),
                     file_name: file.name,
-                    org_key: orgKey,
-                    project_key: projectKey,
-                    mission_key: missionKey
                 });
                 throw error;
             }
@@ -122,86 +122,90 @@ export const assetController = {
     /**
      * Gets an asset by its ID
      * 
-     * @param orgKey - Organization key
-     * @param projectKey - Project key
-     * @param missionKey - Mission key
-     * @param assetId - Asset ID
-     * @param redis - Redis client
-     * 
+     * @param assetId - Asset UUID
      * @returns The asset metadata
      */
-    getAssetById: async (
-        orgKey: string,
-        projectKey: string,
-        missionKey: string,
-        assetId: string,
-        redis: RedisClient
-    ): Promise<Asset> => {
-        const redisPath = `orgs:${orgKey}:projects:${projectKey}:missions:${missionKey}:assets:${assetId}`;
-        const asset = await redis.getObject(`${redisPath}:info`) as Asset | null;
+    getAssetById: async (assetId: string): Promise<AssetWithRelations> => {
+        try {
+            const asset = await prisma.asset.findUnique({
+                where: { uuid: assetId },
+                include: {
+                    mission: true,
+                }
+            });
 
-        if (!asset) {
-            throw new ServerError('Asset not found', 404);
+            if (!asset) {
+                throw new ServerError('Asset not found', 404);
+            }
+
+            // Update presigned URL if needed
+            const s3Client = S3Client.getInstance();
+            const updatedDownloadUrl = s3Client.getDownloadUrl(asset.stored_path);
+            
+            // Update the download URL in the database if it has changed
+            if (updatedDownloadUrl !== asset.download_url) {
+                await prisma.asset.update({
+                    where: { uuid: assetId },
+                    data: { download_url: updatedDownloadUrl }
+                });
+                asset.download_url = updatedDownloadUrl;
+            }
+
+            return asset;
+        } catch (error) {
+            if (error instanceof ServerError) throw error;
+            
+            logger.error('Failed to get asset:', {
+                error: error instanceof Error ? error.message : String(error),
+                asset_id: assetId
+            });
+            throw new ServerError('Failed to get asset', 500);
         }
-
-        // Update presigned URL
-        const s3Client = S3Client.getInstance();
-        asset.presignedUrl = s3Client.getDownloadUrl(
-            orgKey,
-            projectKey,
-            asset.path
-        );
-
-        return asset;
     },
 
     /**
-     * Lists all assets for a mission
+     * Lists all assets for a user
      * 
-     * @param orgKey - Organization key
-     * @param projectKey - Project key
-     * @param missionKey - Mission key
-     * @param redis - Redis client
-     * 
+     * @param ownerUuid - Owner user UUID
      * @returns Array of assets
      */
-    listMissionAssets: async (
-        orgKey: string,
-        projectKey: string,
-        missionKey: string,
-        redis: RedisClient
-    ): Promise<Asset[]> => {
+    listUserAssets: async (ownerUuid: string): Promise<AssetWithRelations[]> => {
         try {
-            const redisPath = `orgs:${orgKey}:projects:${projectKey}:missions:${missionKey}`;
-            const assetIds = await redis.smembers(`${redisPath}:assets:members`);
+            const assets = await prisma.asset.findMany({
+                where: { owner_uuid: ownerUuid },
+                include: {
+                    mission: true,
+                }
+            });
 
-            if (assetIds.length === 0) {
-                logger.info(`No assets found for mission ${missionKey}`);
+            if (assets.length === 0) {
+                logger.info(`No assets found for user ${ownerUuid}`);
                 return [];
             }
 
+            // Update all presigned URLs
             const s3Client = S3Client.getInstance();
-
-            // Get info for each asset and update presigned URLs
-            const assets = await Promise.all(assetIds.map(async (id) => {
-                const asset = await redis.getObject(`${redisPath}:assets:${id}:info`) as Asset | null;
-                if (asset) {
-                    asset.presignedUrl = s3Client.getDownloadUrl(
-                        orgKey,
-                        projectKey,
-                        asset.path
-                    );
+            
+            // Use a for loop to update assets in place
+            for (const asset of assets) {
+                // Update the download URL
+                const updatedDownloadUrl = s3Client.getDownloadUrl(asset.stored_path);
+                
+                // Update in database if changed
+                if (updatedDownloadUrl !== asset.download_url) {
+                    await prisma.asset.update({
+                        where: { uuid: asset.uuid },
+                        data: { download_url: updatedDownloadUrl }
+                    });
+                    asset.download_url = updatedDownloadUrl;
                 }
-                return asset;
-            }));
+            }
 
-            return assets.filter((asset): asset is Asset => asset !== null);
+            return assets;
         } catch (error) {
             logger.error('Failed to list assets:', {
                 error: error instanceof Error ? error.message : String(error),
-                org_key: orgKey,
-                project_key: projectKey,
-                mission_key: missionKey
+                owner_uuid: ownerUuid
             });
             throw new ServerError('Failed to list assets', 500);
         }
@@ -210,51 +214,112 @@ export const assetController = {
     /**
      * Deletes an asset
      * 
-     * @param orgKey - Organization key
-     * @param projectKey - Project key
-     * @param missionKey - Mission key
-     * @param assetId - Asset ID
-     * @param redis - Redis client
+     * @param assetId - Asset UUID
      */
-    deleteAsset: async (
-        orgKey: string,
-        projectKey: string,
-        missionKey: string,
-        assetId: string,
-        redis: RedisClient
-    ): Promise<void> => {
+    deleteAsset: async (assetId: string): Promise<void> => {
         try {
             // Get asset info first to get the file path
-            const asset = await assetController.getAssetById(orgKey, projectKey, missionKey, assetId, redis);
+            const asset = await prisma.asset.findUnique({
+                where: { uuid: assetId }
+            });
+            
+            if (!asset) {
+                throw new ServerError('Asset not found', 404);
+            }
             
             // Delete from S3
             const s3Client = S3Client.getInstance();
-            await s3Client.deleteProjectFile(
-                orgKey,
-                projectKey,
-                asset.path
-            );
+            await s3Client.deleteFile(asset.stored_path);
 
-            // Delete from Redis
-            const redisPath = `orgs:${orgKey}:projects:${projectKey}:missions:${missionKey}`;
-            await redis.del(`${redisPath}:assets:${assetId}:info`);
-            await redis.srem(`${redisPath}:assets:members`, assetId);
-
-            await redis.publish(`asset:event_deleted`, JSON.stringify({
-                organization_key: orgKey,
-                project_key: projectKey,
-                mission_key: missionKey,
-                asset_id: assetId
-            }));
+            // Delete from database
+            await prisma.asset.delete({
+                where: { uuid: assetId }
+            });
 
             logger.info(`Asset ${assetId} deleted successfully`);
         } catch (error) {
             logger.error('Failed to delete asset:', {
                 error: error instanceof Error ? error.message : String(error),
-                org_key: orgKey,
-                project_key: projectKey,
-                mission_key: missionKey,
                 asset_id: assetId
+            });
+            throw error;
+        }
+    },
+    
+    /**
+     * Add a user to the access list for an asset
+     * 
+     * @param assetId - Asset UUID
+     * @param userUuid - User UUID to grant access
+     */
+    addUserAccess: async (assetId: string, userUuid: string): Promise<void> => {
+        try {
+            const asset = await prisma.asset.findUnique({
+                where: { uuid: assetId }
+            });
+            
+            if (!asset) {
+                throw new ServerError('Asset not found', 404);
+            }
+            
+            // Add user to access list if not already present
+            if (!asset.access_uuids.includes(userUuid)) {
+                await prisma.asset.update({
+                    where: { uuid: assetId },
+                    data: {
+                        access_uuids: {
+                            push: userUuid
+                        }
+                    }
+                });
+            }
+            
+            logger.info(`Access granted to user ${userUuid} for asset ${assetId}`);
+        } catch (error) {
+            logger.error('Failed to add user access:', {
+                error: error instanceof Error ? error.message : String(error),
+                asset_id: assetId,
+                user_id: userUuid
+            });
+            throw error;
+        }
+    },
+    
+    /**
+     * Remove a user from the access list for an asset
+     * 
+     * @param assetId - Asset UUID
+     * @param userUuid - User UUID to revoke access
+     */
+    removeUserAccess: async (assetId: string, userUuid: string): Promise<void> => {
+        try {
+            const asset = await prisma.asset.findUnique({
+                where: { uuid: assetId }
+            });
+            
+            if (!asset) {
+                throw new ServerError('Asset not found', 404);
+            }
+            
+            // Check if user is owner - can't remove owner's access
+            if (asset.owner_uuid === userUuid) {
+                throw new ServerError('Cannot remove access from the owner', 400);
+            }
+            
+            // Remove user from access list
+            await prisma.asset.update({
+                where: { uuid: assetId },
+                data: {
+                    access_uuids: asset.access_uuids.filter((uuid: string) => uuid !== userUuid)
+                }
+            });
+            
+            logger.info(`Access revoked for user ${userUuid} for asset ${assetId}`);
+        } catch (error) {
+            logger.error('Failed to remove user access:', {
+                error: error instanceof Error ? error.message : String(error),
+                asset_id: assetId,
+                user_id: userUuid
             });
             throw error;
         }
@@ -267,4 +332,17 @@ export const assetController = {
 function getFileExtension(filename: string): string {
     const ext = filename.split('.').pop();
     return ext ? `.${ext}` : '';
+}
+
+/**
+ * Helper function to generate thumbnail URL based on asset type and path
+ * Implementation depends on your requirements
+ */
+function generateThumbnailUrl(path: string, fileType: string): string | null {
+    // Simple implementation - in production you'd have more complex logic
+    // to generate thumbnails for different file types
+    if (fileType.startsWith('image/')) {
+        return `${path}_thumbnail`;
+    }
+    return null;
 } 

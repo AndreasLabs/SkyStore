@@ -30,24 +30,17 @@ export class S3Client {
     }
 
     /**
-     * Ensure organization structure exists
+     * Ensure user structure exists
      */
-    public async ensureOrgStructure(orgKey: string): Promise<void> {
-        await this.minioClient.createOrgStructure(orgKey);
+    public async ensureUserStructure(user_uuid: string): Promise<void> {
+        await this.minioClient.createUserStructure(user_uuid);
     }
 
     /**
-     * Ensure project structure exists
+     * Ensure assets structure exists
      */
-    public async ensureProjectStructure(orgKey: string, projectKey: string): Promise<void> {
-        await this.minioClient.createProjectStructure(orgKey, projectKey);
-    }
-
-    /**
-     * Ensure mission structure exists
-     */
-    public async ensureMissionStructure(orgKey: string, projectKey: string, missionKey: string): Promise<void> {
-        await this.minioClient.createMissionStructure(orgKey, projectKey, missionKey);
+    public async ensureAssetsStructure(user_uuid: string, assetKey: string): Promise<void> {
+        await this.minioClient.createAssetsStructure(user_uuid, assetKey);
     }
 
     public static getInstance(): S3Client {
@@ -58,28 +51,47 @@ export class S3Client {
     }
 
     /**
-     * Gets a reference to a file in the organization's storage
-     * Pattern: orgs/{orgKey}/projects/{projectKey}/files/{filename}
+     * Gets a reference to a file using its stored path
      */
-    public getProjectFile(orgKey: string, projectKey: string, filename: string): S3File {
-        const path = `orgs/${orgKey}/projects/${projectKey}/files/${filename}`;
-        logger.info(`Getting S3 file reference: ${path}`);
-        return this.client.file(path);
+    public getFile(stored_path: string): S3File {
+        logger.info(`Getting S3 file reference: ${stored_path}`);
+        return this.client.file(stored_path);
     }
 
     /**
-     * Uploads a file to the organization's storage
+     * Gets file using a raw storage path such as a s3 path
      */
-    public async uploadProjectFile(
-        orgKey: string, 
-        projectKey: string, 
-        filename: string, 
+    public getFilePath(stored_path: string): S3File {
+        return this.client.file(stored_path);
+    }
+
+    /**
+     * Uploads a file to storage using the stored path
+     */
+    public async uploadFile(
+        stored_path: string, 
         data: string | S3File | Blob | ArrayBuffer | SharedArrayBuffer | Response | Request | ArrayBufferView,
         contentType?: string
     ): Promise<void> {
-        const file = this.getProjectFile(orgKey, projectKey, filename);
-        logger.info(`Uploading file to S3: ${filename}`);
+        const file = this.getFile(stored_path);
+        logger.info(`Uploading file to S3: ${stored_path}`);
         await file.write(data, contentType ? { type: contentType } : undefined);
+    }
+
+    /**
+     * Uploads a file to the project storage
+     */
+    public async uploadProjectFile(
+        user_uuid: string,
+        filename: string, 
+        data: string | S3File | Blob | ArrayBuffer | SharedArrayBuffer | Response | Request | ArrayBufferView,
+        contentType?: string
+    ): Promise<string> {
+        const stored_path = `assets/${user_uuid}/${filename}`;
+        const file = this.getFile(stored_path);
+        logger.info(`Uploading file to S3: ${stored_path}`);
+        await file.write(data, contentType ? { type: contentType } : undefined);
+        return stored_path;
     }
 
     /**
@@ -87,12 +99,10 @@ export class S3Client {
      * Expires in 24 hours by default
      */
     public getDownloadUrl(
-        orgKey: string, 
-        projectKey: string, 
-        filename: string, 
+        stored_path: string, 
         expiresIn: number = 60 * 60 * 24
     ): string {
-        const file = this.getProjectFile(orgKey, projectKey, filename);
+        const file = this.getFile(stored_path);
         return file.presign({
             expiresIn,
             acl: "public-read"
@@ -103,12 +113,10 @@ export class S3Client {
      * Generates a pre-signed URL for file upload
      */
     public getUploadUrl(
-        orgKey: string, 
-        projectKey: string, 
-        filename: string, 
+        stored_path: string, 
         expiresIn: number = 60 * 60
     ): string {
-        const file = this.getProjectFile(orgKey, projectKey, filename);
+        const file = this.getFile(stored_path);
         return file.presign({
             expiresIn,
             method: "PUT",
@@ -119,25 +127,25 @@ export class S3Client {
     /**
      * Deletes a file from storage
      */
-    public async deleteProjectFile(orgKey: string, projectKey: string, filename: string): Promise<void> {
-        const file = this.getProjectFile(orgKey, projectKey, filename);
-        logger.info(`Deleting file from S3: ${filename}`);
+    public async deleteFile(stored_path: string): Promise<void> {
+        const file = this.getFile(stored_path);
+        logger.info(`Deleting file from S3: ${stored_path}`);
         await file.delete();
     }
 
     /**
      * Checks if a file exists
      */
-    public async fileExists(orgKey: string, projectKey: string, filename: string): Promise<boolean> {
-        const file = this.getProjectFile(orgKey, projectKey, filename);
+    public async fileExists(stored_path: string): Promise<boolean> {
+        const file = this.getFile(stored_path);
         return await file.exists();
     }
 
     /**
      * Gets file metadata
      */
-    public async getFileMetadata(orgKey: string, projectKey: string, filename: string) {
-        const file = this.getProjectFile(orgKey, projectKey, filename);
+    public async getFileMetadata(stored_path: string) {
+        const file = this.getFile(stored_path);
         return await file.stat();
     }
 } 
