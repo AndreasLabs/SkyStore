@@ -9,6 +9,7 @@ projects:
   # odm-bridge: 'odm-bridge'
   node-odm: 'node-odm'
   core_types: 'core_types'
+  postgres: 'postgres'
 vcs:
   manager: 'git'
   defaultBranch: 'main'

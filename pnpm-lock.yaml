@@ -1,0 +1,42 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      adze:
+        specifier: ^2.2.1
+        version: 2.2.1
+
+packages:
+
+  '@ungap/structured-clone@1.2.0':
+    resolution: {integrity: sha512-zuVdFrMJiuCDQUMCzQaD6KL28MjnqqN8XnAqiEq9PNm/hCPTSGfrXCOfwj1ow4LFb/tNymJPwsNbVePc1xFqrQ==}
+
+  adze@2.2.1:
+    resolution: {integrity: sha512-zTQPl28v/WNEZo4Pmb3HThpYLLTeMuHX3fvC8Aw1CIAHT7nZR5JiqbmE/mB+3qemX4n0ygj+3KfcFpKxLINa/A==}
+    engines: {node: '>=18.19.0'}
+
+  date-fns@3.6.0:
+    resolution: {integrity: sha512-fRHTG8g/Gif+kSh50gaGEdToemgfj74aRX3swtiouboip5JDLAyDE9F11nHMIcvOaXeOC6D7SpNhi7uFyB7Uww==}
+
+  picocolors@1.1.1:
+    resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
+
+snapshots:
+
+  '@ungap/structured-clone@1.2.0': {}
+
+  adze@2.2.1:
+    dependencies:
+      '@ungap/structured-clone': 1.2.0
+      date-fns: 3.6.0
+      picocolors: 1.1.1
+
+  date-fns@3.6.0: {}
+
+  picocolors@1.1.1: {}

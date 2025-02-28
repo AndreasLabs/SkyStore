@@ -1,26 +1,6 @@
 version: '3.8'
 
 services:
-  odm-bridge:
-    build:
-      context: ./odm-bridge
-      dockerfile: Dockerfile
-    ports:
-      - "3001:3001"
-    environment:
-      - REDIS_URL=redis://redis:6379
-      - MINIO_ENDPOINT=minio
-      - MINIO_PORT=9500
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
-      - NODEODM_URL=http://nodeodm:3000
-    depends_on:
-      - redis
-      - minio
-      - nodeodm
-    networks:
-      - skystore-network
-    restart: unless-stopped
 
   nodeodm:
     image: opendronemap/nodeodm:latest
@@ -39,8 +19,8 @@ services:
 
   app:
     build:
-      context: ./app
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: server/Dockerfile
     ports:
       - "4000:4000"
     environment:
@@ -50,10 +30,28 @@ services:
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - NODEODM_URL=http://nodeodm:3000
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=skystore
     depends_on:
       - redis
       - minio
       - nodeodm
+      - postgres
+    networks:
+      - skystore-network
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - app
     networks:
       - skystore-network
     restart: unless-stopped
@@ -133,6 +131,25 @@ services:
     networks:
       - skystore-network
     restart: unless-stopped
+    
+  postgres:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=skystore
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - skystore-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
 networks:
   skystore-network:
@@ -146,4 +163,5 @@ volumes:
   nodeodm-data:
     driver: local
   clickhouse-data:
+  postgres-data:
     driver: local
