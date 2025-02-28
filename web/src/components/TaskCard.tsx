@@ -18,7 +18,7 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient, Task } from '../api/client';
+import { Task } from '@skystore/core_types';
 import { 
   IconPlayerPlay, 
   IconPlayerPause,
@@ -30,6 +30,7 @@ import {
   IconStack,
   IconRotate,
 } from '@tabler/icons-react';
+import { usePauseTask, useResumeTask } from '../hooks/useTaskHooks';
 
 const STATUS_CODES = {
   QUEUED: 10,
@@ -100,76 +101,38 @@ export function TaskCard({ task }: { task: ExtendedTask }) {
   const { organization, project, mission } = useParams();
   const queryClient = useQueryClient();
 
-  // Poll for task status updates
   const { data: taskStatus } = useQuery({
     queryKey: ['task-status', task.id],
     queryFn: async () => {
       if (!organization || !project || !mission) throw new Error('Missing parameters');
-      const response = await apiClient.getTaskStatus(organization, project, mission, task.id);
-      return response;
+      const response = await fetch(`/api/org/${organization}/project/${project}/missions/${mission}/tasks/${task.id}/status`);
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return (await response.json()) as TaskStatus;
     },
     enabled: Boolean(organization && project && mission && task.status.code === STATUS_CODES.RUNNING),
     refetchInterval: task.status.code === STATUS_CODES.RUNNING ? 5000 : false,
   });
- 
-  // Get console output
+
   const { data: consoleOutput, refetch: refetchLogs } = useQuery({
     queryKey: ['task-output', task.id],
     queryFn: async () => {
       if (!organization || !project || !mission) throw new Error('Missing parameters');
-      const response = await apiClient.getTaskOutput(organization, project, mission, task.id, 0);
-      return JSON.parse(response[0]);
+      const response = await fetch(`/api/org/${organization}/project/${project}/missions/${mission}/tasks/${task.id}/output`);
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      const data = await response.json();
+      return data[0] ? (JSON.parse(data[0]) as string[]) : [];
     },
     enabled: Boolean(organization && project && mission),
     refetchInterval: false,
   });
 
-  // Mutations for pause/resume
-  const pauseTaskMutation = useMutation({
-    mutationFn: () => {
-      if (!organization || !project || !mission) throw new Error('Missing parameters');
-      return apiClient.pauseTask(organization, project, mission, task.id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['task-status', task.id] });
-      notifications.show({
-        title: 'Success',
-        message: 'Task paused successfully',
-        color: 'yellow',
-      });
-    },
-    onError: (error) => {
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to pause task',
-        color: 'red',
-      });
-    },
-  });
+  const { mutate: pauseTaskMutation } = usePauseTask();
+  const { mutate: resumeTaskMutation } = useResumeTask();
 
-  const resumeTaskMutation = useMutation({
-    mutationFn: () => {
-      if (!organization || !project || !mission) throw new Error('Missing parameters');
-      return apiClient.resumeTask(organization, project, mission, task.id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['task-status', task.id] });
-      notifications.show({
-        title: 'Success',
-        message: 'Task resumed successfully',
-        color: 'green',
-      });
-    },
-    onError: (error) => {
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to resume task',
-        color: 'red',
-      });
-    },
-  });
-
-  // Use the latest task data
   const currentTask = taskStatus || task;
   const isProcessing = currentTask.status.code === STATUS_CODES.RUNNING;
   const isPaused = currentTask.status.code === STATUS_CODES.QUEUED;
@@ -299,8 +262,7 @@ export function TaskCard({ task }: { task: ExtendedTask }) {
                   variant="light" 
                   size="sm" 
                   color="green"
-                  onClick={() => resumeTaskMutation.mutate()}
-                  loading={resumeTaskMutation.isPending}
+                  onClick={() => resumeTaskMutation({ organization, project, mission, taskId: task.id })}
                 >
                   <IconPlayerPlay size={16} />
                 </ActionIcon>
@@ -312,8 +274,7 @@ export function TaskCard({ task }: { task: ExtendedTask }) {
                   variant="light" 
                   size="sm" 
                   color="yellow"
-                  onClick={() => pauseTaskMutation.mutate()}
-                  loading={pauseTaskMutation.isPending}
+                  onClick={() => pauseTaskMutation({ organization, project, mission, taskId: task.id })}
                 >
                   <IconPlayerPause size={16} />
                 </ActionIcon>

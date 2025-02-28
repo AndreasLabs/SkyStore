@@ -2,7 +2,8 @@ import React from 'react';
 import { Container, Grid, Card, Text, Button, Group, Stack, Loader, Center } from '@mantine/core';
 import { IconPlus, IconRocket } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useMissions } from '../api/hooks';
+import { useMissions } from '../hooks/useMissionHooks';
+import { Mission } from '@skystore/core_types';
 
 export function ProjectDashboard() {
   const navigate = useNavigate();

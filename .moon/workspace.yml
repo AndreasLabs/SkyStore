@@ -8,6 +8,7 @@ projects:
   docker: 'docker'
   # odm-bridge: 'odm-bridge'
   node-odm: 'node-odm'
+  core_types: 'core_types'
 vcs:
   manager: 'git'
   defaultBranch: 'main'

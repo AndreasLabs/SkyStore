@@ -3,8 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { TextInput, Button, Paper, Title, Container, Stack, Select, Grid, NumberInput, Divider, Text } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { useMutation } from '@tanstack/react-query';
-import { apiClient } from '../api/client';
+import { useCreateMission } from '../hooks/useMissionHooks';
 import { LocationPicker } from '../components/LocationPicker';
 
 interface MissionFormValues {
@@ -49,72 +48,9 @@ interface MissionFormValues {
 
 export function CreateMission() {
   const navigate = useNavigate();
-  const { organization, project } = useParams();
+  const { organization: orgKey, project: projectKey } = useParams();
 
-  const createMissionMutation = useMutation({
-    mutationFn: async (values: MissionFormValues) => {
-      if (!organization || !project) {
-        throw new Error('No organization or project selected');
-      }
-
-      return apiClient.createMission({
-        organization,
-        project,
-        mission: values.mission,
-        name: values.name,
-        location: values.location,
-        date: values.date || new Date().toISOString(),
-        metadata: {
-          // Equipment
-          platform: values.metadata.platform || '',
-          camera: values.metadata.camera || '',
-          lens: values.metadata.lens || '',
-          telescope: values.metadata.telescope || '',
-          
-          // Target
-          target: values.metadata.target || '',
-          target_type: values.metadata.target_type || '',
-          
-          // Flight Parameters
-          altitude: values.metadata.altitude || '',
-          overlap_percent: values.metadata.overlap_percent || '',
-          sidelap_percent: values.metadata.sidelap_percent || '',
-          ground_resolution: values.metadata.ground_resolution || '',
-          
-          // Capture Settings
-          exposure_time: values.metadata.exposure_time || '',
-          iso: values.metadata.iso || '',
-          aperture: values.metadata.aperture || '',
-          
-          // Conditions
-          weather_conditions: values.metadata.weather_conditions || '',
-          visibility: values.metadata.visibility || '',
-          wind_speed: values.metadata.wind_speed || '',
-          temperature: values.metadata.temperature || '',
-          
-          // Additional Info
-          observer: values.metadata.observer || '',
-          priority: values.metadata.priority || 'medium',
-          notes: values.metadata.notes || '',
-        },
-      });
-    },
-    onSuccess: (_, variables) => {
-      notifications.show({
-        title: 'Success',
-        message: 'Mission created successfully',
-        color: 'green',
-      });
-      navigate(`/org/${organization}/project/${project}/mission/${variables.mission}`);
-    },
-    onError: (error) => {
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to create mission',
-        color: 'red',
-      });
-    },
-  });
+  const createMissionMutation = useCreateMission();
 
   const form = useForm<MissionFormValues>({
     initialValues: {
@@ -167,7 +103,77 @@ export function CreateMission() {
   });
 
   const handleSubmit = (values: MissionFormValues) => {
-    createMissionMutation.mutate(values);
+    if (!orgKey || !projectKey) {
+      notifications.show({
+        title: 'Error',
+        message: 'No organization or project selected',
+        color: 'red',
+      });
+      return;
+    }
+
+    createMissionMutation.mutate(
+      {
+        orgKey,
+        projectKey,
+        missionKey: values.mission,
+        data: {
+          name: values.name,
+          location: values.location,
+          date: values.date || new Date().toISOString(),
+          metadata: {
+            // Equipment
+            platform: values.metadata.platform || '',
+            camera: values.metadata.camera || '',
+            lens: values.metadata.lens || '',
+            telescope: values.metadata.telescope || '',
+            
+            // Target
+            target: values.metadata.target || '',
+            target_type: values.metadata.target_type || '',
+            
+            // Flight Parameters
+            altitude: values.metadata.altitude || '',
+            overlap_percent: values.metadata.overlap_percent || '',
+            sidelap_percent: values.metadata.sidelap_percent || '',
+            ground_resolution: values.metadata.ground_resolution || '',
+            
+            // Capture Settings
+            exposure_time: values.metadata.exposure_time || '',
+            iso: values.metadata.iso || '',
+            aperture: values.metadata.aperture || '',
+            
+            // Conditions
+            weather_conditions: values.metadata.weather_conditions || '',
+            visibility: values.metadata.visibility || '',
+            wind_speed: values.metadata.wind_speed || '',
+            temperature: values.metadata.temperature || '',
+            
+            // Additional Info
+            observer: values.metadata.observer || '',
+            priority: values.metadata.priority || 'medium',
+            notes: values.metadata.notes || '',
+          }
+        }
+      },
+      {
+        onSuccess: () => {
+          notifications.show({
+            title: 'Success',
+            message: 'Mission created successfully',
+            color: 'green',
+          });
+          navigate(`/org/${orgKey}/project/${projectKey}/mission/${values.mission}`);
+        },
+        onError: (error) => {
+          notifications.show({
+            title: 'Error',
+            message: error instanceof Error ? error.message : 'Failed to create mission',
+            color: 'red',
+          });
+        }
+      }
+    );
   };
 
   return (
@@ -444,4 +450,4 @@ export function CreateMission() {
       </Paper>
     </Container>
   );
-} 
+}
