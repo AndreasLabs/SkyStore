@@ -4,6 +4,7 @@ import { Notifications } from '@mantine/notifications';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { AppRoutes } from './Routes';
+import { AuthProvider } from './contexts/AuthContext';
 
 import { theme } from './theme';
 import { QUERY_CONFIG } from './constants';
@@ -23,9 +24,9 @@ export default function App() {
       <MantineProvider theme={theme} defaultColorScheme="dark">
         <Notifications />
         <BrowserRouter>
-
+          <AuthProvider>
             <AppRoutes />
-
+          </AuthProvider>
         </BrowserRouter>
       </MantineProvider>
     </QueryClientProvider>

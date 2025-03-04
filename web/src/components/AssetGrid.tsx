@@ -19,7 +19,10 @@ import {
   IconDots,
   Icon3dCubeSphere,
   IconFileReport,
+  IconUser,
+  IconCloudUpload,
 } from '@tabler/icons-react';
+import { useAuth } from '../contexts/AuthContext';
 
 // Define Asset interface based on the Prisma schema
 interface Asset {
@@ -86,6 +89,8 @@ function getAssetColor(fileType: string) {
 }
 
 export function AssetGrid({ assets, onView, onDownload, onDelete }: AssetGridProps) {
+  const { isAuthenticated } = useAuth();
+  
   return (
     <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="md">
       {assets.map((asset) => (
@@ -120,6 +125,20 @@ export function AssetGrid({ assets, onView, onDownload, onDelete }: AssetGridPro
             <Text size="sm" c="dimmed" lineClamp={2}>
               {`${(asset.size_bytes / 1024 / 1024).toFixed(2)} MB`}
             </Text>
+            
+            {/* Show owner and uploader information when authenticated */}
+            {isAuthenticated && (
+              <>
+                <Group gap="xs" mt="xs">
+                  <IconUser size={14} />
+                  <Text size="xs" c="dimmed">Owner: {asset.owner_uuid}</Text>
+                </Group>
+                <Group gap="xs">
+                  <IconCloudUpload size={14} />
+                  <Text size="xs" c="dimmed">Uploader: {asset.uploader_uuid}</Text>
+                </Group>
+              </>
+            )}
 
             <Divider />
 

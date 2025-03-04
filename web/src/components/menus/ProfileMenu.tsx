@@ -1,21 +1,20 @@
 import { Menu, Avatar, Text, UnstyledButton, Group, Skeleton } from '@mantine/core';
 import { IconSettings, IconLogout, IconUser } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { useLogout } from '../../hooks/useAuthHooks';
 
 export function ProfileMenu() {
   const navigate = useNavigate();
-  
-  // Mock user data and state
-  const isLoading = false;
-  const user = {
-    name: 'Demo User',
-    email: 'demo@example.com',
-    avatar: null
-  };
+  const { user, isLoading, isAuthenticated } = useAuth();
+  const { mutate: logoutMutation, isPending: isLoggingOut } = useLogout();
   
   const handleLogout = () => {
-    // Mock logout functionality
-    navigate('/');
+    logoutMutation(undefined, {
+      onSuccess: () => {
+        navigate('/login');
+      }
+    });
   };
 
   if (isLoading) {
@@ -27,22 +26,35 @@ export function ProfileMenu() {
     );
   }
 
+  if (!isAuthenticated || !user) {
+    return (
+      <UnstyledButton onClick={() => navigate('/login')}>
+        <Text size="sm" fw={500}>Login</Text>
+      </UnstyledButton>
+    );
+  }
+
+  // Create display name from user data
+  const displayName = user.first_name && user.last_name 
+    ? `${user.first_name} ${user.last_name}`
+    : user.username;
+
   return (
     <Menu position="bottom-end" shadow="md" width={200}>
       <Menu.Target>
         <UnstyledButton>
           <Group gap="xs">
             <Avatar
-              src={user.avatar}
-              alt={user.name}
+              src={null} // We could add avatar url to the user object if needed
+              alt={displayName}
               radius="xl"
               size="sm"
               color="blue"
             >
-              {user.name.charAt(0)}
+              {displayName.charAt(0)}
             </Avatar>
             <Text size="sm" fw={500}>
-              {user.name}
+              {displayName}
             </Text>
           </Group>
         </UnstyledButton>
@@ -51,7 +63,7 @@ export function ProfileMenu() {
       <Menu.Dropdown>
         <Menu.Label>Profile</Menu.Label>
         <Menu.Item>
-          <Text size="sm" fw={500}>{user.name}</Text>
+          <Text size="sm" fw={500}>{displayName}</Text>
           <Text size="xs" c="dimmed">{user.email}</Text>
         </Menu.Item>
         <Menu.Divider />
@@ -72,8 +84,9 @@ export function ProfileMenu() {
           color="red"
           leftSection={<IconLogout size={16} />}
           onClick={handleLogout}
+          disabled={isLoggingOut}
         >
-          Logout
+          {isLoggingOut ? 'Logging out...' : 'Logout'}
         </Menu.Item>
       </Menu.Dropdown>
     </Menu>

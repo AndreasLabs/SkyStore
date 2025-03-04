@@ -1,9 +1,25 @@
 import { RestResult } from '@skystore/core_types';
 import { treaty } from '@elysiajs/eden';
 import type { App } from '../../../server/src/index';
+import { getToken } from '../utils/authUtils';
 
-// Create Eden Treaty client
-export const api = treaty<App>('http://localhost:4000');
+// Create Eden Treaty client with auth header
+export const api = treaty<App>('http://localhost:4000', {
+  fetcher: (url, init) => {
+    // Get the auth token from localStorage
+    const token = getToken();
+    
+    // Add Authorization header if token exists
+    if (token) {
+      init.headers = {
+        ...init.headers,
+        Authorization: `Bearer ${token}`
+      };
+    }
+    
+    return fetch(url, init);
+  }
+});
 
 // Helper to wrap API calls with proper typing
 export async function apiCall<T>(
@@ -13,6 +29,11 @@ export async function apiCall<T>(
     const { data, error } = await promise;
     
     if (error) {
+      // Handle unauthorized errors (401) by clearing token from localStorage
+      if (error.status === 401) {
+        localStorage.removeItem('auth_token');
+      }
+      
       return {
         http_status: error.status || 500,
         success: false,
@@ -26,7 +47,7 @@ export async function apiCall<T>(
       success: true,
       message: 'Success',
       content: data as T
-    };U
+    };
   } catch (error: any) {
     return {
       http_status: 500,

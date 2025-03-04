@@ -215,17 +215,21 @@ export const authRoutes = createBaseRoute('/auth')
   .get('/me', 
     async ({ jwt, cookie, headers, set }) => {
       try {
-        // Try to get token from cookies or Authorization header
-        let token = cookie.auth;
+        // Try to get token from Authorization header first, then cookies
+        let token;
         
-        // If no cookie, check Authorization header
-        if (!token && headers.authorization) {
+        // Check Authorization header first
+        if (headers.authorization) {
           const authHeader = headers.authorization;
           if (authHeader.startsWith('Bearer ')) {
             token = authHeader.substring(7);
           }
         }
         
+        // If no token in Authorization header, check cookie
+        if (!token) {
+          token = cookie.auth;
+        }
         if (!token) {
           set.status = 401;
           return {

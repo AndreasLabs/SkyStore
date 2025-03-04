@@ -6,10 +6,12 @@ import { notifications } from '@mantine/notifications';
 import { AssetGrid } from '../components/AssetGrid';
 
 import { useAssets, useCreateAsset } from '../hooks/useAssetHooks';
+import { useAuth } from '../contexts/AuthContext';
 
 export function MissionAssets() {
   const navigate = useNavigate();
   const [uploadProgress, setUploadProgress] = useState(0);
+  const { user } = useAuth();
 
   const {
     data: assets = [],
@@ -26,7 +28,7 @@ export function MissionAssets() {
   }, [assets]);
 
   const handleFileUpload = async (files: File[] | null) => {
-    if (!files) return;
+    if (!files || !user) return;
 
     try {
       setUploadProgress(0);
@@ -36,8 +38,8 @@ export function MissionAssets() {
         // Upload the file using the createAsset hook
         await createAsset({ 
           file,
-          owner_uuid: 'default', // Replace with actual user ID
-          uploader_uuid: 'default', // Replace with actual user ID
+          owner_uuid: user.uuid, // Use current user's UUID
+          uploader_uuid: user.uuid, // Use current user's UUID
           mission_uuid: 'default' // Replace with actual mission ID
         });
         setUploadProgress(((i + 1) / files.length) * 100);
