@@ -8,7 +8,7 @@ import {
   IconSettings,
   IconChecklist,
 } from '@tabler/icons-react';
-import { useMission } from '../../hooks/useMissionHooks';
+
 
 interface NavItemProps {
   label: string;
@@ -46,56 +46,29 @@ function NavItem({ label, icon, active, disabled, selectedItem, onClick }: NavIt
 export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { organization, project, mission } = useParams();
-  const { data: missionData } = useMission(organization ?? '', project ?? '', mission ?? '');
 
   const navItems = [
     {
       label: 'Home',
       icon: <IconHome size="1.2rem" />,
-      path: `/org/${organization}/project/${project}`,
-      active: location.pathname === `/org/${organization}/project/${project}`,
-      disabled: !organization || !project,
-      onClick: () => organization && project && navigate(`/org/${organization}/project/${project}`),
+      path: `/dashboard`,
+      active: location.pathname === `/dashboard`,
+      onClick: () => navigate(`/dashboard`),
     },
-    {
-      label: 'Mission',
-      icon: <IconRocket size="1.2rem" />,
-      path: `/org/${organization}/project/${project}/mission/${mission}`,
-      active: Boolean(mission && !location.pathname.includes('/assets') && !location.pathname.includes('/tasks')),
-      disabled: !organization || !project || !mission,
-      selectedItem: missionData?.name,
-      onClick: () => organization && project && mission && 
-        navigate(`/org/${organization}/project/${project}/mission/${mission}`),
-    },
+  
     {
       label: 'Assets',
       icon: <IconPhoto size="1.2rem" />,
-      path: `/org/${organization}/project/${project}/mission/${mission}/assets`,
-      active: Boolean(mission && location.pathname.includes('/assets')),
-      disabled: !organization || !project || !mission,
-      selectedItem: missionData?.name,
-      onClick: () => organization && project && mission && 
-        navigate(`/org/${organization}/project/${project}/mission/${mission}/assets`),
-    },
-    {
-      label: 'Tasks',
-      icon: <IconChecklist size="1.2rem" />,
-      path: `/org/${organization}/project/${project}/mission/${mission}/tasks`,
-      active: Boolean(mission && location.pathname.includes('/tasks')),
-      disabled: !organization || !project || !mission,
-      selectedItem: missionData?.name,
-      onClick: () => organization && project && mission && 
-        navigate(`/org/${organization}/project/${project}/mission/${mission}/tasks`),
+      path: `/assets`,
+      active: location.pathname.includes('/assets'),
+      onClick: () => navigate(`/assets`),
     },
     {
       label: 'Settings',
       icon: <IconSettings size="1.2rem" />,
-      path: `/org/${organization}/project/${project}/settings`,
-      active: Boolean(project && location.pathname.endsWith('/settings')),
-      disabled: !organization || !project,
-      onClick: () => organization && project && 
-        navigate(`/org/${organization}/project/${project}/settings`),
+      path: `/settings`,
+      active: location.pathname.endsWith('/settings'),
+      onClick: () => navigate(`/settings`),
     },
   ];
 

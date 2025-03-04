@@ -14,14 +14,78 @@ import {
   LoadingOverlay,
   Paper,
 } from '@mantine/core';
-import { useUpdateUser, useUser, useCreateUser } from '../hooks/useUserHooks';
-import { useCurrentUser } from '../contexts/UserContext';
 import { notifications } from '@mantine/notifications';
 import { IconCheck } from '@tabler/icons-react';
+import { useState, useEffect } from 'react';
+
+// Mock user context
+const useCurrentUser = () => {
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  return {
+    user: currentUserId,
+    isLoading: false,
+    error: null,
+    setCurrentUserId,
+    setCurrentUser: (user: any) => console.log('Setting user', user),
+  };
+};
+
+// Mock user hooks
+const useCreateUser = () => {
+  return {
+    mutateAsync: async (userData: any) => {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return { uuid: crypto.randomUUID(), ...userData };
+    },
+    isPending: false,
+  };
+};
+
+const useUser = (userId: string) => {
+  const [mockUser, setMockUser] = useState<any>(null);
+  
+  useEffect(() => {
+    if (userId) {
+      // Simulate fetching user data
+      setTimeout(() => {
+        setMockUser({
+          uuid: userId,
+          name: 'John Doe',
+          email: 'john.doe@example.com',
+          bio: 'Software developer with a passion for building great products.',
+          location: 'San Francisco, CA',
+          company: 'SkyStore Inc.',
+          website: 'https://example.com',
+          avatar: null,
+          joinDate: new Date().toISOString(),
+        });
+      }, 300);
+    }
+  }, [userId]);
+  
+  return {
+    data: mockUser,
+    isLoading: !mockUser && !!userId,
+    error: null,
+  };
+};
+
+const useUpdateUser = () => {
+  return {
+    mutate: (params: any, options: any) => {
+      // Simulate API call
+      setTimeout(() => {
+        if (options?.onSuccess) options.onSuccess();
+      }, 500);
+    },
+    isPending: false,
+  };
+};
 
 function CreateUserForm() {
   const { setCurrentUserId } = useCurrentUser();
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
     name: '',
     email: '',
     bio: '',
@@ -130,9 +194,9 @@ export function Profile() {
   const { user: currentUserId, isLoading: contextLoading, error: contextError, setCurrentUser } = useCurrentUser();
   const { data: currentUser, isLoading: userLoading, error: userError } = useUser(currentUserId || '');
   const updateUserMutation = useUpdateUser();
-  const [isEditing, setIsEditing] = React.useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
-  const updateUserInPlace = (updates: React.SetStateAction<Partial<typeof currentUser>>) => {
+  const updateUserInPlace = (updates: Partial<typeof currentUser>) => {
     if (currentUser) {
       setCurrentUser({ ...currentUser, ...(typeof updates === 'function' ? updates(currentUser) : updates) });
     }

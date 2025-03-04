@@ -1,15 +1,20 @@
-import React from 'react';
 import { Menu, Avatar, Text, UnstyledButton, Group, Skeleton } from '@mantine/core';
 import { IconSettings, IconLogout, IconUser } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
-import { useCurrentUser } from '../../contexts/UserContext';
 
 export function ProfileMenu() {
   const navigate = useNavigate();
-  const { user, isLoading, setCurrentUserId } = useCurrentUser();
-
+  
+  // Mock user data and state
+  const isLoading = false;
+  const user = {
+    name: 'Demo User',
+    email: 'demo@example.com',
+    avatar: null
+  };
+  
   const handleLogout = () => {
-    setCurrentUserId(null);
+    // Mock logout functionality
     navigate('/');
   };
 
@@ -19,17 +24,6 @@ export function ProfileMenu() {
         <Skeleton height={30} circle />
         <Skeleton height={20} width={100} />
       </Group>
-    );
-  }
-
-  if (!user) {
-    return (
-      <UnstyledButton onClick={() => navigate('/profile')}>
-        <Group gap="xs">
-          <Avatar radius="xl" size="sm" color="blue">?</Avatar>
-          <Text size="sm" fw={500}>Sign In</Text>
-        </Group>
-      </UnstyledButton>
     );
   }
 

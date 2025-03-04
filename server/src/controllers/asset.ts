@@ -339,10 +339,10 @@ function getFileExtension(filename: string): string {
  * Implementation depends on your requirements
  */
 function generateThumbnailUrl(path: string, fileType: string): string | null {
-    // Simple implementation - in production you'd have more complex logic
-    // to generate thumbnails for different file types
+    // For image files, generate a pre-signed URL for direct access
     if (fileType.startsWith('image/')) {
-        return `${path}_thumbnail`;
+        const s3Client = S3Client.getInstance();
+        return s3Client.getDownloadUrl(path);
     }
     return null;
 } 

@@ -2,6 +2,7 @@ import { t } from 'elysia';
 import { createBaseRoute } from './base';
 import { assetController } from '../controllers/asset';
 import { ServerError } from '../types/ServerError';
+import logger from '../logger';
 
 // Update the route to a simpler path structure
 export const assetRoutes = createBaseRoute('/assets')
@@ -12,6 +13,7 @@ export const assetRoutes = createBaseRoute('/assets')
       store: { redis: any }
     }) => {
       try {
+        logger.info('Listing assets', { query });
         // For now, we'll list by mission, but in the future this could be updated to filter by owner/uploader
         const assets = await assetController.listUserAssets(query.owner_uuid || '');
 

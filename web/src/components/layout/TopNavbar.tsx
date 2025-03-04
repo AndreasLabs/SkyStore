@@ -8,19 +8,12 @@ import {
   UnstyledButton,
 } from '@mantine/core';
 import { IconRocket } from '@tabler/icons-react';
-import { LocationPicker } from '../common/LocationPicker';
 import { ProfileMenu } from '../menus/ProfileMenu';
-import { OrganizationMenu } from '../menus/OrganizationMenu';
-import { ProjectMenu } from '../menus/ProjectMenu';
-import { MissionMenu } from '../menus/MissionMenu';
 import { LAYOUT } from '../../constants';
-import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export function TopNavbar() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { organization, project } = useParams();
-  const showLocationPicker = !location.pathname.startsWith('/dashboard');
 
   return (
     <AppShell.Header h={LAYOUT.header.height}>
@@ -33,13 +26,6 @@ export function TopNavbar() {
                 <Text size="lg" fw={700}>SkyStore</Text>
               </Group>
             </UnstyledButton>
-            {showLocationPicker && (
-              <Group>
-                <OrganizationMenu />
-                {organization && <ProjectMenu />}
-                {organization && project && <MissionMenu />}
-              </Group>
-            )}
           </Group>
 
           <ProfileMenu />

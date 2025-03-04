@@ -58,12 +58,29 @@ app.use(opentelemetry({
 
 // Add state and routes
 app.state('redis', redis);
-app.onRequest(({ request }) => {
+
+// Enhanced logging middleware
+app.onRequest(({ request, query, params, path }) => {
   const method = request.method;
-  const url = request.url;
+  const url = new URL(request.url);
   const userAgent = request.headers.get('user-agent') || '-';
-  logger.info(`${method} ${url} ${userAgent}`);
+  
+  const logData = {
+    method,
+    path,
+    query: Object.keys(query || {}).length > 0 ? query : undefined,
+    params: Object.keys(params || {}).length > 0 ? params : undefined,
+    userAgent
+  };
+  
+  // Filter out undefined values for cleaner logs
+  const cleanLogData = Object.fromEntries(
+    Object.entries(logData).filter(([_, v]) => v !== undefined)
+  );
+  
+  logger.info(`${method} ${path}`, cleanLogData);
 });
+
 app.use(assetRoutes);
 app.use(authRoutes);
 
@@ -90,3 +107,5 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason, promise) => {
   logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
+
+export type App = typeof app 

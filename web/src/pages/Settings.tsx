@@ -1,245 +1,170 @@
-import React from 'react';
-import {
-  Container,
-  Grid,
-  Card,
-  Text,
-  Button,
-  Group,
-  Stack,
-  Loader,
-  Center,
-  Title,
-  TextInput,
+import { useState, useEffect } from 'react';
+import { 
+  Title, 
+  Text, 
+  Stack, 
+  TextInput, 
+  Button, 
+  Divider, 
+  Paper, 
   Select,
-  Switch,
-  ColorPicker,
-  Slider,
-  SegmentedControl,
-  Divider,
-  LoadingOverlay,
+  NativeSelect,
+  Group,
+  Container
 } from '@mantine/core';
-import { useCurrentUser } from '../contexts/UserContext';
-import { useUpdateUserSettings } from '../hooks/useUserHooks';
-import { User } from '@skystore/core_types';
 
 export function Settings() {
-  const { user: currentUser, isLoading, refetch } = useCurrentUser();
-  const updateSettingsMutation = useUpdateUserSettings();
-
-  // Initialize settings from user data, or use defaults if not loaded
-  const [settings, setSettings] = React.useState(
-    currentUser?.settings || {
-      darkMode: true,
-      accentColor: '#1971c2',
-      notifications: true,
-      emailNotifications: true,
-      autoSave: true,
-      language: 'en',
-      timezone: 'UTC',
-      mapStyle: 'satellite',
-    }
-  );
-
-  // Update local settings when currentUser changes
-  React.useEffect(() => {
-    if (currentUser?.settings) {
-      setSettings(currentUser.settings);
-    }
-  }, [currentUser]);
-
-  const handleSave = () => {
-    if (!currentUser) return;
-
-    updateSettingsMutation.mutate(
-      {
-        id: currentUser.id,
-        data: settings,
-      },
-      {
-        onSuccess: () => {
-          refetch(); // Refetch user data after update
-        },
-      }
-    );
+  const [mapboxToken, setMapboxToken] = useState(localStorage.getItem('mapbox_token') || '');
+  const [styleUrl, setStyleUrl] = useState(localStorage.getItem('mapbox_style') || 'mapbox://styles/mapbox/satellite-v9');
+  const [customStyleInput, setCustomStyleInput] = useState('');
+  const [mapStyles, setMapStyles] = useState([
+    { value: 'mapbox://styles/mapbox/satellite-v9', label: 'Satellite' },
+    { value: 'mapbox://styles/mapbox/outdoors-v12', label: 'Outdoors' },
+    { value: 'mapbox://styles/mapbox/streets-v12', label: 'Streets' },
+    { value: 'mapbox://styles/mapbox/navigation-day-v1', label: 'Navigation Day' },
+    { value: 'mapbox://styles/mapbox/navigation-night-v1', label: 'Navigation Night' },
+    { value: 'mapbox://styles/mapbox/light-v10', label: 'Light' },
+    { value: 'mapbox://styles/mapbox/dark-v10', label: 'Dark' },
+    { value: 'mapbox://styles/mapbox/light-v9', label: 'Light v9' },
+    { value: 'mapbox://styles/mapbox/dark-v9', label: 'Dark v9' },
+    { value: 'mapbox://styles/mapbox/light-v8', label: 'Light v8' },
+    { value: 'mapbox://styles/victoryforphil/cm5xshpj600eg01slhyzb1atu', label: 'Dark VFP' },
+  ]);
+  
+  const handleSaveSettings = () => {
+    localStorage.setItem('mapbox_token', mapboxToken);
+    localStorage.setItem('mapbox_style', styleUrl);
+    localStorage.setItem('custom_map_styles', JSON.stringify(
+      mapStyles.filter(style => !style.value.startsWith('mapbox://styles/mapbox/'))
+    ));
+    alert('Settings saved successfully!');
   };
-
-  if (isLoading) {
-    return (
-      <Container size="md" py="xl">
-        <LoadingOverlay visible={true} />
-      </Container>
-    );
-  }
-
-  if (!currentUser) {
-    return (
-      <Container size="md" py="xl">
-        <Text>Please create a user profile first</Text>
-      </Container>
-    );
-  }
+  
+  // Add a custom style URL
+  const addCustomStyle = () => {
+    if (!customStyleInput) return;
+    
+    const newOption = { 
+      value: customStyleInput, 
+      label: `Custom: ${customStyleInput.split('/').pop() || customStyleInput}` 
+    };
+    
+    setMapStyles(prev => {
+      // Check if already exists
+      if (prev.some(style => style.value === customStyleInput)) {
+        return prev;
+      }
+      return [...prev, newOption];
+    });
+    
+    setStyleUrl(customStyleInput);
+    setCustomStyleInput('');
+  };
+  
+  // Load custom styles on component mount
+  useEffect(() => {
+    const savedCustomStyles = localStorage.getItem('custom_map_styles');
+    if (savedCustomStyles) {
+      try {
+        const customStyles = JSON.parse(savedCustomStyles);
+        setMapStyles(prev => {
+          const existingValues = new Set(prev.map(item => item.value));
+          const newStyles = customStyles.filter(style => !existingValues.has(style.value));
+          return [...prev, ...newStyles];
+        });
+      } catch (e) {
+        console.error('Failed to parse custom map styles', e);
+      }
+    }
+  }, []);
 
   return (
     <Container size="md" py="xl">
-      <Stack gap="xl">
-        <div>
-          <Title order={2}>Settings</Title>
-          <Text c="dimmed">Customize your experience</Text>
-        </div>
-
-        <Card withBorder>
-          <Stack gap="xl">
-            <div>
-              <Text fw={500} mb="md">Appearance</Text>
-              <Stack gap="md">
-                <Group justify="space-between">
-                  <div>
-                    <Text>Dark Mode</Text>
-                    <Text size="sm" c="dimmed">Toggle dark/light theme</Text>
-                  </div>
-                  <Switch
-                    checked={settings.darkMode}
-                    onChange={(e) =>
-                      setSettings({ ...settings, darkMode: e.currentTarget.checked })
-                    }
-                  />
-                </Group>
-
-                <div>
-                  <Text size="sm" mb="xs">Accent Color</Text>
-                  <ColorPicker
-                    format="hex"
-                    value={settings.accentColor}
-                    onChange={(color) =>
-                      setSettings({ ...settings, accentColor: color })
-                    }
-                  />
-                </div>
-
-                <div>
-                  <Text size="sm" mb="xs">Map Style</Text>
-                  <SegmentedControl
-                    value={settings.mapStyle}
-                    onChange={(value) =>
-                      setSettings({ ...settings, mapStyle: value as string })
-                    }
-                    data={[
-                      { label: 'Satellite', value: 'satellite' },
-                      { label: 'Streets', value: 'streets' },
-                      { label: 'Hybrid', value: 'hybrid' },
-                    ]}
-                  />
-                </div>
-              </Stack>
-            </div>
-
-            <Divider />
-
-            <div>
-              <Text fw={500} mb="md">Notifications</Text>
-              <Stack gap="md">
-                <Group justify="space-between">
-                  <div>
-                    <Text>Push Notifications</Text>
-                    <Text size="sm" c="dimmed">
-                      Get notified about important updates
-                    </Text>
-                  </div>
-                  <Switch
-                    checked={settings.notifications}
-                    onChange={(e) =>
-                      setSettings({
-                        ...settings,
-                        notifications: e.currentTarget.checked,
-                      })
-                    }
-                  />
-                </Group>
-
-                <Group justify="space-between">
-                  <div>
-                    <Text>Email Notifications</Text>
-                    <Text size="sm" c="dimmed">Receive email updates</Text>
-                  </div>
-                  <Switch
-                    checked={settings.emailNotifications}
-                    onChange={(e) =>
-                      setSettings({
-                        ...settings,
-                        emailNotifications: e.currentTarget.checked,
-                      })
-                    }
-                  />
-                </Group>
-              </Stack>
-            </div>
-
-            <Divider />
-
-            <div>
-              <Text fw={500} mb="md">Preferences</Text>
-              <Stack gap="md">
-                <Select
-                  label="Language"
-                  value={settings.language}
-                  onChange={(value) =>
-                    setSettings({ ...settings, language: value || 'en' })
-                  }
-                  data={[
-                    { value: 'en', label: 'English' },
-                    { value: 'es', label: 'Spanish' },
-                    { value: 'fr', label: 'French' },
-                  ]}
+      <Stack spacing="lg">
+        <Title order={2}>Settings</Title>
+        
+        <Paper withBorder p="md">
+          <Stack>
+            <Title order={4}>Mapbox Configuration</Title>
+            <Text size="sm" c="dimmed">
+              Configure your Mapbox token and style URL for the 3D map editor.
+            </Text>
+            
+            <Divider my="sm" />
+            
+            <TextInput
+              label="Mapbox Access Token"
+              description="Your token is stored in local storage and never sent to our servers."
+              placeholder="Enter your Mapbox access token"
+              value={mapboxToken}
+              onChange={(e) => setMapboxToken(e.currentTarget.value)}
+            />
+            
+            <Select
+              label="Map Style"
+              description="Select a predefined style"
+              placeholder="Select map style"
+              data={mapStyles}
+              value={styleUrl}
+              onChange={(value) => value && setStyleUrl(value)}
+              searchable
+              clearable
+            />
+            
+            <Stack spacing="xs">
+              <Text size="sm" fw={500}>Add Custom Style URL</Text>
+              <Group align="flex-end">
+                <TextInput
+                  placeholder="Enter custom Mapbox style URL"
+                  style={{ flex: 1 }}
+                  value={customStyleInput}
+                  onChange={(e) => setCustomStyleInput(e.currentTarget.value)}
                 />
-
-                <Select
-                  label="Timezone"
-                  value={settings.timezone}
-                  onChange={(value) =>
-                    setSettings({ ...settings, timezone: value || 'UTC' })
-                  }
-                  data={[
-                    { value: 'UTC', label: 'UTC' },
-                    { value: 'EST', label: 'Eastern Time' },
-                    { value: 'PST', label: 'Pacific Time' },
-                  ]}
-                />
-
-                <Group justify="space-between">
-                  <div>
-                    <Text>Auto-save</Text>
-                    <Text size="sm" c="dimmed">Automatically save changes</Text>
-                  </div>
-                  <Switch
-                    checked={settings.autoSave}
-                    onChange={(e) =>
-                      setSettings({ ...settings, autoSave: e.currentTarget.checked })
-                    }
-                  />
-                </Group>
-              </Stack>
-            </div>
-
-            <Divider />
-
-            <Group justify="flex-end">
-              <Button
-                variant="light"
-                onClick={() => window.history.back()}
-                disabled={updateSettingsMutation.isPending}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSave}
-                loading={updateSettingsMutation.isPending}
-              >
-                Save Changes
-              </Button>
-            </Group>
+                <Button onClick={addCustomStyle} disabled={!customStyleInput}>
+                  Add
+                </Button>
+              </Group>
+              <Text size="xs" c="dimmed">
+                Tip: Add your own Mapbox style URL to use custom map styles
+              </Text>
+            </Stack>
+            
+            <Button onClick={handleSaveSettings} mt="md">
+              Save Settings
+            </Button>
           </Stack>
-        </Card>
+        </Paper>
+        
+        <Paper withBorder p="md">
+          <Stack>
+            <Title order={4}>Application Preferences</Title>
+            <Text size="sm" c="dimmed">
+              Configure general application settings.
+            </Text>
+            
+            <Divider my="sm" />
+            
+            <Select
+              label="Default Units"
+              placeholder="Select default units"
+              data={[
+                { value: 'metric', label: 'Metric (meters)' },
+                { value: 'imperial', label: 'Imperial (feet)' },
+              ]}
+              defaultValue="metric"
+            />
+            
+            <TextInput
+              label="Default Mission Name Prefix"
+              placeholder="Mission"
+              defaultValue="Mission"
+            />
+            
+            <Button onClick={() => alert('Preferences saved!')} mt="md">
+              Save Preferences
+            </Button>
+          </Stack>
+        </Paper>
       </Stack>
     </Container>
   );

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Asset } from '@skystore/core_types';
-import { axiosInstance } from '../api/apiClient';
+import { api } from '../api/apiClient';
 
 // Query keys for assets
 const assetKeys = {
@@ -8,48 +8,52 @@ const assetKeys = {
   lists: (orgKey: string, projectKey: string, missionKey: string) => [...assetKeys.all, 'list', orgKey, projectKey, missionKey] as const,
   detail: (orgKey: string, projectKey: string, missionKey: string, assetId: string) => [...assetKeys.all, 'detail', orgKey, projectKey, missionKey, assetId] as const,
 };
-
 // API calls integrated into hooks
-const listAssets = async (orgKey: string, projectKey: string, missionKey: string) => {
-  const response = await axiosInstance.get<Asset[]>(`/org/${orgKey}/project/${projectKey}/missions/${missionKey}/assets`);
+const listAssets = async () => {
+  const response = await api.assets.get({query: {owner_uuid: 'default', uploader_uuid: 'default'}});
   return response.data;
 };
 
-const getAsset = async (orgKey: string, projectKey: string, missionKey: string, assetId: string) => {
-  const response = await axiosInstance.get<Asset>(`/org/${orgKey}/project/${projectKey}/missions/${missionKey}/assets/${assetId}`);
+const getAsset = async (assetId: string) => {
+  const response = await api.assets[':id'].get({ params: { id: assetId } });
   return response.data;
 };
 
-const createAsset = async (orgKey: string, projectKey: string, missionKey: string, file: File) => {
+const createAsset = async (file: File, owner_uuid: string, uploader_uuid: string, mission_uuid?: string) => {
   const formData = new FormData();
   formData.append('file', file);
-  const response = await axiosInstance.post<Asset>(`/org/${orgKey}/project/${projectKey}/missions/${missionKey}/assets`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+  formData.append('owner_uuid', owner_uuid);
+  formData.append('uploader_uuid', uploader_uuid);
+  if (mission_uuid) {
+    formData.append('mission_uuid', mission_uuid);
+  }
+  
+  const response = await api.assets.upload.post({
+    file: file,
+    owner_uuid: owner_uuid,
+    uploader_uuid: uploader_uuid,
+  //  mission_uuid: mission_uuid
   });
   return response.data;
 };
 
-const deleteAsset = async (orgKey: string, projectKey: string, missionKey: string, assetId: string) => {
-  await axiosInstance.delete(`/org/${orgKey}/project/${projectKey}/missions/${missionKey}/assets/${assetId}`);
+const deleteAsset = async (assetId: string) => {
+  await api.assets[':id'].delete({ params: { id: assetId } });
 };
 
 // Hook for fetching a list of assets
-export const useAssets = (orgKey: string, projectKey: string, missionKey: string) => {
+export const useAssets = () => {
   return useQuery({
-    queryKey: ['assets', orgKey, projectKey, missionKey],
-    queryFn: () => listAssets(orgKey, projectKey, missionKey),
-    enabled: !!orgKey && !!projectKey && !!missionKey, // Only run the query if we have all keys
+    queryKey: ['assets'],
+    queryFn: () => listAssets(),
   });
 };
 
 // Hook for fetching a single asset
-export const useAsset = (orgKey: string, projectKey: string, missionKey: string, assetId: string) => {
+export const useAsset = (assetId: string) => {
   return useQuery({
-    queryKey: ['asset', orgKey, projectKey, missionKey, assetId],
-    queryFn: () => getAsset(orgKey, projectKey, missionKey, assetId),
-    enabled: !!orgKey && !!projectKey && !!missionKey && !!assetId, // Only run the query if we have all keys
+    queryKey: ['asset', assetId],
+    queryFn: () => getAsset(assetId),
   });
 };
 
@@ -58,12 +62,11 @@ export const useCreateAsset = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ orgKey, projectKey, missionKey, file }: { orgKey: string; projectKey: string; missionKey: string; file: File }) =>
-      createAsset(orgKey, projectKey, missionKey, file),
-    onSuccess: (_, { orgKey, projectKey, missionKey }) => {
-      // Invalidate the assets list query to trigger a refetch
-      queryClient.invalidateQueries({ queryKey: ['assets', orgKey, projectKey, missionKey] });
-    },
+    mutationFn: ({ file, owner_uuid, uploader_uuid, mission_uuid }: { file: File; owner_uuid: string; uploader_uuid: string; mission_uuid?: string }) =>
+      createAsset(file, owner_uuid, uploader_uuid, mission_uuid),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: assetKeys.all });
+    }
   });
 };
 
