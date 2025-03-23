@@ -1,15 +1,10 @@
 $schema: 'https://moonrepo.dev/schemas/workspace.json'
 
 projects:
-  app: 'app'
-  web: 'web'
-  redis: 'redis'
-  minio: 'minio'
-  docker: 'docker'
-  # odm-bridge: 'odm-bridge'
-  node-odm: 'node-odm'
-  core_types: 'core_types'
-  postgres: 'postgres'
+  - 'server'
+  - 'web'
+  - 'core_types'
+  - 'docker/compose-full'
 vcs:
   manager: 'git'
   defaultBranch: 'main'

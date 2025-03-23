@@ -1,23 +1,20 @@
-FROM node:20-alpine as build
+FROM oven/bun:1.0.30 as build
 
 WORKDIR /app
 
-# Copy package files and install dependencies
+# Copy package files and dependencies
 COPY web/package.json ./
-COPY web/pnpm-lock.yaml ./
+COPY web/bun.lock ./
 COPY core_types ./core_types
 
-# Install pnpm
-RUN npm install -g pnpm
-
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN bun install --frozen
 
 # Copy the rest of the application
 COPY web/ ./
 
 # Build the application
-RUN pnpm build
+RUN bun run build
 
 # Production stage with nginx
 FROM nginx:alpine
@@ -32,4 +29,4 @@ COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
 
 # Start Nginx
-CMD ["nginx", "-g", "daemon off;"] 
+CMD ["nginx", "-g", "daemon off;"]

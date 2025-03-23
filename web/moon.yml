@@ -6,3 +6,8 @@ language: 'typescript'
 project:
   name: 'web'
   description: 'Frontend web application using Vite and React'
+
+tags:
+- 'docker'
+
+

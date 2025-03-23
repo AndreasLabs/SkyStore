@@ -1,0 +1,39 @@
+language: "typescript"
+type: "application"
+
+project:
+  name: 'server'
+  description: 'Server for SkyStore'
+  metadata:
+    tag: 'server'
+
+tags:
+- 'prisma'
+- 'docker'
+
+tasks:
+  entrypoint:
+    command: './scripts/entrypoint.sh'
+    toolchain: 'system'
+  build:
+    command: 'echo "Building server"'
+    toolchain: 'system'
+    
+  dev:
+    command: 'bun run dev'
+    deps:
+    - 'compose-full:redis'
+    - 'compose-full:postgres'
+    - 'compose-full:minio'
+    - 'compose-full:nodeodm'
+    options:
+      outputStyle: 'stream'
+
+  docker-dev:
+    deps:
+    - 'compose-full:postgres'
+    - 'compose-full:redis'
+    - 'compose-full:minio'
+    - 'compose-full:nodeodm'
+    env:
+      DATABASE_URL: 'postgresql://cursed_postgres:VictoryForPostgres@localhost:4152/cursed'

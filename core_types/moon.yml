@@ -1,8 +1,7 @@
 type: library
 language: typescript
 
-tasks:
-  build:
-    command: bun run build
-    outputs:
-    - dist
+project:
+  name: 'core_types'
+  description: 'Core types for the project'
+

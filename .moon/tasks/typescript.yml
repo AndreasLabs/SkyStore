@@ -4,47 +4,48 @@ fileGroups:
   typescript:
   - 'src/**/*.ts'
   - 'src/**/*.tsx'
+  - 'src/**/*.js'
+  - 'src/**/*.jsx'
   - 'tests/**/*.ts'
   - 'tests/**/*.tsx'
+  - 'tests/**/*.js'
+  - 'tests/**/*.jsx'
+  - 'prisma/**/*.prisma'
   configs:
   - 'tsconfig.json'
   - 'tsconfig.*.json'
+  - 'vite.config.ts'
+  - 'prisma/**/*.prisma'
+  - 'prisma/**/*.yml'
+  - 'bun.config.ts'
   assets:
   - 'public/**/*'
-
 tasks:
   install:
     command: 'bun install'
+    inputs:
+    - '@globs(typescript)'
+    - '@globs(configs)'
+    options:
+      mergeDeps: append
 
   dev:
     command: 'bun run dev'
-    deps:
-    - '~:install'
-    - 'docker:down'
-    - 'redis:up'
-    - 'minio:up'
-    - 'node-odm:up'
-    options:
-      cache: false
-
-  build:
-    command: 'bun run build'
     inputs:
     - '@globs(typescript)'
-    - '@globs(assets)'
-    outputs:
-    - 'dist'
+    - '@globs(configs)'
     options:
-      runInCI: true
+      mergeDeps: append     
+
+
 
   preview:
     command: 'bun run preview'
-    deps:
-    - '~:build'
-    local: true
+    inputs:
+    - '@globs(typescript)'
+    - '@globs(assets)'
     options:
-      persistent: true
-      runInCI: false
+      runInCI: true
 
   test:
     command: 'bun test'

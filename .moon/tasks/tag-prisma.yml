@@ -1,0 +1,30 @@
+$schema: 'https://moonrepo.dev/schemas/tasks.json'
+fileGroups:
+  prisma:
+  - 'prisma/**/*.prisma'
+  - 'prisma/**/*.yml'
+tasks:
+  install:
+    options:
+      mergeDeps: append
+    deps:
+    - '~:prisma-generate'
+  prisma-generate:
+    command: 'bunx prisma generate'
+    inputs:
+    - '@globs(prisma)'
+
+  prisma-migrate:
+    command: 'bunx prisma migrate dev'
+    inputs:
+    - '@globs(prisma)'
+
+  prisma-db-push:
+    command: 'bunx prisma db push'
+    inputs:
+    - '@globs(prisma)'
+
+  prisma-studio:
+    command: 'bunx prisma studio'
+    inputs:
+    - '@globs(prisma)'
