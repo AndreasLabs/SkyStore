@@ -2,55 +2,31 @@ version: '3.8'
 
 services:
 
-  nodeodm:
-    image: opendronemap/nodeodm:latest
+  web:
+    build:
+      context: ../..
+      dockerfile: web/Dockerfile
     ports:
-      - "3000:3000"
-    volumes:
-      - nodeodm-data:/var/www/data
-    environment:
-      - PORT=3000
-      - HOSTNAME=nodeodm
-      - MAX_IMAGES=500
-      - MAX_WORKERS=2
+      - "4150:80"
+    depends_on:
+      - app
     networks:
       - skystore-network
     restart: unless-stopped
-
-  postgres:
-    image: postgres:16
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=skystore
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    networks:
-      - skystore-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d skystore"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    restart: unless-stopped
-    command: ["postgres", "-c", "logging_collector=on"]
 
   app:
     build:
       context: ../..
       dockerfile: server/Dockerfile
     ports:
-      - "4000:4000"
+      - "4151:4000"
     environment:
       - REDIS_URL=redis://redis:6379
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9500
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
-      - NODEODM_URL=http://nodeodm:3000
+      - NODEODM_URL=http://nodeodm:4161
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_USER=postgres
@@ -68,14 +44,81 @@ services:
       - skystore-network
     restart: unless-stopped
 
-  web:
-    build:
-      context: ../..
-      dockerfile: web/Dockerfile
+  postgres:
+    image: postgres:16
     ports:
-      - "80:80"
+      - "4152:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=skystore
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - skystore-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d skystore"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    command: ["postgres", "-c", "logging_collector=on"]
+
+  otel-collector:
+    image: signoz/signoz-otel-collector:0.88.7
+    ports:
+      - "4154:4317"    # OTLP gRPC receiver
+      - "4155:4318"    # OTLP http receiver
+    networks:
+      - skystore-network
+    restart: unless-stopped
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.11.2-alpine
+    ports:
+      - "4156:9000"
+      - "4157:8123"
+      - "4158:9181"
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    networks:
+      - skystore-network
+    restart: unless-stopped
+
+  query-service:
+    image: signoz/query-service:0.35.1
+    ports:
+      - "4159:6060"
+    environment:
+      - ClickHouseUrl=tcp://clickhouse:9000
     depends_on:
-      - app
+      - clickhouse
+    networks:
+      - skystore-network
+    restart: unless-stopped
+
+  frontend:
+    image: signoz/frontend:0.35.1
+    ports:
+      - "4160:3301"
+    depends_on:
+      - query-service
+    networks:
+      - skystore-network
+    restart: unless-stopped
+
+  nodeodm:
+    image: opendronemap/nodeodm:latest
+    ports:
+      - "4161:3000"
+    volumes:
+      - nodeodm-data:/var/www/data
+    environment:
+      - PORT=3000
+      - HOSTNAME=nodeodm
+      - MAX_IMAGES=500
+      - MAX_WORKERS=2
     networks:
       - skystore-network
     restart: unless-stopped
@@ -83,8 +126,8 @@ services:
   redis:
     image: redis/redis-stack:latest
     ports:
-      - "6379:6379"
-      - "8001:8001"
+      - "4162:6379"
+      - "4163:8001"
     environment:
       - REDIS_ARGS="--appendonly yes"
    # volumes:
@@ -96,8 +139,8 @@ services:
   minio:
     image: minio/minio:latest
     ports:
-      - "9500:9000"  # API port
-      - "9001:9001"  # Console port
+      - "4164:9000"  # API port
+      - "4165:9001"  # Console port
     environment:
       - MINIO_ROOT_USER=minioadmin
       - MINIO_ROOT_PASSWORD=minioadmin
@@ -113,49 +156,6 @@ services:
       retries: 3
     restart: unless-stopped
 
-  otel-collector:
-    image: signoz/signoz-otel-collector:0.88.7
-    ports:
-      - "4317:4317"    # OTLP gRPC receiver
-      - "4318:4318"    # OTLP http receiver
-    networks:
-      - skystore-network
-    restart: unless-stopped
-
-  clickhouse:
-    image: clickhouse/clickhouse-server:23.11.2-alpine
-    ports:
-      - "9000:9000"
-      - "8123:8123"
-      - "9181:9181"
-    volumes:
-      - clickhouse-data:/var/lib/clickhouse
-    networks:
-      - skystore-network
-    restart: unless-stopped
-
-  query-service:
-    image: signoz/query-service:0.35.1
-    ports:
-      - "6060:6060"
-    environment:
-      - ClickHouseUrl=tcp://clickhouse:9000
-    depends_on:
-      - clickhouse
-    networks:
-      - skystore-network
-    restart: unless-stopped
-
-  frontend:
-    image: signoz/frontend:0.35.1
-    ports:
-      - "3301:3301"
-    depends_on:
-      - query-service
-    networks:
-      - skystore-network
-    restart: unless-stopped
-
 networks:
   skystore-network:
     driver: bridge
@@ -168,5 +168,6 @@ volumes:
   nodeodm-data:
     driver: local
   clickhouse-data:
+    driver: local
   postgres-data:
     driver: local

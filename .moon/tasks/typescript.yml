@@ -29,16 +29,6 @@ tasks:
     options:
       mergeDeps: append
 
-  dev:
-    command: 'bun run dev'
-    inputs:
-    - '@globs(typescript)'
-    - '@globs(configs)'
-    options:
-      mergeDeps: append     
-
-
-
   preview:
     command: 'bun run preview'
     inputs:

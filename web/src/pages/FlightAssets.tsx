@@ -31,7 +31,7 @@ import { AssetGrid } from '../components/AssetGrid';
 import { useAssets, useCreateAsset } from '../hooks/useAssetHooks';
 import { useAuth } from '../contexts/AuthContext';
 
-export function MissionAssets() {
+export function FlightAssets() {
   const navigate = useNavigate();
   const [uploadProgress, setUploadProgress] = useState(0);
   const { user } = useAuth();
@@ -62,7 +62,7 @@ export function MissionAssets() {
         // Upload the file using the createAsset hook
         await createAsset({ 
           file,
-          mission_uuid: 'default' // Replace with actual mission ID
+          flight_uuid: 'default' // Replace with actual flight ID
         });
         setUploadProgress(((i + 1) / files.length) * 100);
       }
@@ -116,7 +116,7 @@ export function MissionAssets() {
           <Stack gap="xs" style={{ position: 'relative', zIndex: 1 }}>
             <Group justify="space-between" align="flex-start">
               <Stack gap={4}>
-                <Title order={2} c="white">Mission Assets</Title>
+                <Title order={2} c="white">Flight Assets</Title>
                 <Text c="white" opacity={0.9} size="sm">Upload and manage observation data and images</Text>
               </Stack>
               <Group>
@@ -198,7 +198,7 @@ export function MissionAssets() {
               <Stack gap="sm" align="center">
                 <Title order={2} ta="center">No Assets Yet</Title>
                 <Text ta="center" c="dimmed" maw={450} mx="auto">
-                  Upload your first observation data or image to get started with your mission
+                  Upload your first observation data or image to get started with your flight
                 </Text>
               </Stack>
               <FileButton onChange={handleFileUpload} accept="image/*,application/fits" multiple>

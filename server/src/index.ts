@@ -50,7 +50,7 @@ app.use(opentelemetry({
   spanProcessors: [
     new BatchSpanProcessor(
       new OTLPTraceExporter({
-        url: 'http://localhost:4317/v1/traces',
+        url: 'http://localhost:4154/v1/traces',
       })
     )
   ],

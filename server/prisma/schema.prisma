@@ -62,8 +62,8 @@ model Asset {
   thumbnail_url String?
   
   // Relations
-  mission       Mission?  @relation(fields: [mission_uuid], references: [uuid])
-  mission_uuid  String?
+  flight        Flight?  @relation(fields: [flight_uuid], references: [uuid])
+  flight_uuid   String?
   
   // User relations
   owner_uuid    String
@@ -75,8 +75,8 @@ model Asset {
   @@map("assets")
 }
 
-// Mission model
-model Mission {
+// Flight model
+model Flight {
   uuid        String    @id @default(uuid())
   name        String
   description String?
@@ -92,5 +92,5 @@ model Mission {
   // Relation to Asset
   assets      Asset[]
   
-  @@map("missions")
+  @@map("flights")
 }

@@ -21,22 +21,26 @@ const getAsset = async (assetId: string) => {
   return response.data;
 };
 
-const createAsset = async (file: File, owner_uuid: string, uploader_uuid: string, mission_uuid?: string) => {
+const createAsset = async (file: File, owner_uuid: string, uploader_uuid: string, flight_uuid?: string) => {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('owner_uuid', owner_uuid);
   formData.append('uploader_uuid', uploader_uuid);
-  if (mission_uuid) {
-    formData.append('mission_uuid', mission_uuid);
+
+  if (flight_uuid) {
+    formData.append('flight_uuid', flight_uuid);
   }
-  
-  const response = await api.assets.upload.post({
-    file: file,
-    owner_uuid: owner_uuid,
-    uploader_uuid: uploader_uuid,
-  //  mission_uuid: mission_uuid
+
+  const response = await fetch('/api/assets', {
+    method: 'POST',
+    body: formData,
   });
-  return response.data;
+
+  if (!response.ok) {
+    throw new Error('Failed to upload asset');
+  }
+
+  return response.json();
 };
 
 const deleteAsset = async (assetId: string) => {
@@ -75,11 +79,11 @@ export const useCreateAsset = () => {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: ({ file, mission_uuid }: { file: File; mission_uuid?: string }) => {
+    mutationFn: ({ file, flight_uuid }: { file: File; flight_uuid?: string }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      return createAsset(file, user.id, user.id, mission_uuid);
+      return createAsset(file, user.id, user.id, flight_uuid);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: assetKeys.all });

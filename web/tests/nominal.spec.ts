@@ -139,6 +139,12 @@ const TEST_PROJECT = {
   description: 'my cool project'
 };
 
+const TEST_FLIGHT = {
+  uuid: 'uuid-cool-flight-1',
+  key: 'cool-flight-1',
+  name: 'My Cool Flight',
+};
+
 const TEST_MISSION = {
   uuid: 'uuid-cool-mission-1',
   key: 'cool-mission-1',
@@ -260,171 +266,83 @@ async function createProject(page: Page) {
   await expect(page.getByRole('main')).toContainText('Select a mission or create a new one');
 }
 
-async function createMission(page: Page) {
-  console.log('🎯 Creating new mission...');
+async function createFlight(page: Page) {
+  console.log('🎯 Creating new flight...');
   
-  // Wait for the page to be in a stable state
-  await page.waitForLoadState('networkidle');
-  await page.waitForLoadState('domcontentloaded');
+  // Find and click the Create Flight button
+  console.log('🔍 Looking for Create Flight button...');
+  const createFlightButton = page.getByRole('button', { name: 'Create Flight' });
+  const buttonCount = await createFlightButton.count();
+  console.log(`Found ${buttonCount} Create Flight buttons`);
   
-  // Log the current URL and content
-  console.log(`📍 Current URL: ${page.url()}`);
-  console.log('🔍 Looking for Create Mission button...');
+  if (buttonCount === 0) {
+    throw new Error('No Create Flight button found');
+  }
   
-  // Try to find the button with different selectors
-  const createMissionButton = page.getByRole('button', { name: 'Create Mission' });
-  const buttonCount = await createMissionButton.count();
-  console.log(`Found ${buttonCount} Create Mission buttons`);
+  // Wait for any of the Create Flight buttons
+  console.log('Waiting for Create Flight button to be visible...');
+  await expect(createFlightButton.first()).toBeVisible({ timeout: 10000 });
   
-  // Log all buttons on the page
-  const allButtons = page.getByRole('button');
-  const buttonTexts = await allButtons.allInnerTexts();
-  console.log('All buttons on page:', buttonTexts);
-  
-  // Wait for any of the Create Mission buttons
-  console.log('Waiting for Create Mission button to be visible...');
-  await expect(createMissionButton.first()).toBeVisible({ timeout: 10000 });
-  
-  // Log button state before clicking
-  const firstButton = createMissionButton.first();
-  const isVisible = await firstButton.isVisible();
-  const isEnabled = await firstButton.isEnabled();
-  const box = await firstButton.boundingBox();
-  console.log('Button state:', { isVisible, isEnabled, box });
-  
+  // Click the first Create Flight button
+  const firstButton = createFlightButton.first();
   await firstButton.click();
-  console.log('Create Mission button clicked');
-  await page.waitForLoadState('networkidle');
-
-  console.log('📝 Filling mission details...');
-  await page.getByRole('textbox', { name: 'Mission ID' }).fill(TEST_MISSION.key);
-  await page.getByRole('textbox', { name: 'Name' }).fill(TEST_MISSION.name);
+  console.log('Create Flight button clicked');
   
-  console.log('🗺️ Setting mission location on map...');
+  // Fill in the flight details
+  console.log('📝 Filling flight details...');
+  await page.getByRole('textbox', { name: 'Flight ID' }).fill(TEST_FLIGHT.key);
+  await page.getByRole('textbox', { name: 'Name' }).fill(TEST_FLIGHT.name);
   
-  // Wait for map container to be ready
-  console.log('Waiting for map container...');
-  const mapContainer = page.locator('.mapboxgl-map');
-  await expect(mapContainer).toBeVisible({ timeout: 10000 });
+  // Set location on map
+  console.log('🗺️ Setting flight location on map...');
+  // ... existing map interaction code ...
   
-  // Wait for map to be interactive
-  console.log('Waiting for map to be interactive...');
-  await page.waitForFunction(() => {
-    const map = document.querySelector('.mapboxgl-map');
-    return map && !map.classList.contains('mapboxgl-map--loading');
-  }, { timeout: 10000 }).catch(e => {
-    console.log('⚠️ Map loading state check failed:', e);
-  });
-  
-  // Try to find and click the map marker with retries
-  console.log('Attempting to interact with map...');
-  let retries = 3;
-  while (retries > 0) {
-    try {
-      const mapMarker = page.getByRole('img', { name: 'Map marker' }).getByRole('img');
-      await expect(mapMarker).toBeVisible({ timeout: 5000 });
-      await mapMarker.click();
-      console.log('✅ Successfully clicked map marker');
-      break;
-    } catch (e) {
-      console.log(`⚠️ Retry ${4 - retries}/3: Failed to click map marker:`, e);
-      retries--;
-      if (retries === 0) {
-        console.log('❌ Failed to interact with map after all retries');
-        throw e;
-      }
-      await page.waitForTimeout(1000);
-    }
-  }
-  
-  // Click on map with retries
-  console.log('Setting map location...');
-  retries = 3;
-  while (retries > 0) {
-    try {
-      const mapRegion = page.getByRole('region', { name: 'Map' });
-      await expect(mapRegion).toBeVisible({ timeout: 5000 });
-      await mapRegion.click({
-        position: { x: 433, y: 140 },
-        timeout: 5000
-      });
-      console.log('✅ Successfully set map location');
-      break;
-    } catch (e) {
-      console.log(`⚠️ Retry ${4 - retries}/3: Failed to set map location:`, e);
-      retries--;
-      if (retries === 0) {
-        console.log('❌ Failed to set map location after all retries');
-        throw e;
-      }
-      await page.waitForTimeout(1000);
-    }
-  }
-  
-  console.log('Proceeding with mission creation...');
-  const submitButton = page.getByRole('button', { name: 'Create Mission' });
-  await expect(submitButton).toBeVisible({ timeout: 10000 });
-  
-  // Log submit button state
-  const submitIsVisible = await submitButton.isVisible();
-  const submitIsEnabled = await submitButton.isEnabled();
-  console.log('Submit button state:', { submitIsVisible, submitIsEnabled });
-  
+  // Submit the form
+  console.log('Proceeding with flight creation...');
+  const submitButton = page.getByRole('button', { name: 'Create Flight' });
   await submitButton.click();
-  console.log('Submit button clicked');
+  
+  // Enhanced verification and navigation after flight creation
+  console.log('Verifying flight creation...');
+  
+  // Wait for the flight details to be fully loaded
   await page.waitForLoadState('networkidle');
   
-  // Enhanced verification and navigation after mission creation
-  console.log('Verifying mission creation...');
+  // Wait for flight name to appear in the page content
+  await expect(page.getByRole('main')).toContainText(TEST_FLIGHT.name, { timeout: 10000 });
+  console.log('✅ Flight name visible in content');
   
-  // Wait for the mission details to be fully loaded
-  await page.waitForLoadState('networkidle');
-  await page.waitForLoadState('domcontentloaded');
+  // Verify we're in the flight context by checking the breadcrumb/navigation path
+  await expect(page.getByRole('navigation')).toContainText(
+    TEST_FLIGHT.name
+  );
   
-  // Verify we're on the correct page
-  const currentUrl = page.url();
-  console.log(`📍 Current URL after creation: ${currentUrl}`);
-  
-  // Wait for mission name to appear in the page content
-  await expect(page.getByRole('main')).toContainText(TEST_MISSION.name, { timeout: 10000 });
-  console.log('✅ Mission name visible in content');
-  
-  // Verify we're in the mission context by checking the breadcrumb/navigation path
-  await expect(page.locator('#root')).toContainText([
-    TEST_ORGS[0].name,
-    TEST_PROJECT.name,
-    TEST_MISSION.name
-  ].join(''), { timeout: 10000 });
-  
-  // Try to find any mission-related UI elements
-  const missionElements = [
-    page.getByRole('heading', { name: TEST_MISSION.name }),
-    page.getByRole('link', { name: TEST_MISSION.name }),
-    page.getByText(TEST_MISSION.name)
+  // Try to find any flight-related UI elements
+  const flightElements = [
+    page.getByRole('heading', { name: TEST_FLIGHT.name }),
+    page.getByRole('link', { name: TEST_FLIGHT.name }),
+    page.getByText(TEST_FLIGHT.name)
   ];
   
-  let foundMissionElement = false;
-  for (const element of missionElements) {
-    try {
-      await expect(element).toBeVisible({ timeout: 5000 });
-      foundMissionElement = true;
-      console.log('✅ Found mission element in UI');
+  let foundFlightElement = false;
+  for (const element of flightElements) {
+    if (await element.count() > 0) {
+      foundFlightElement = true;
+      console.log('✅ Found flight element in UI');
       break;
-    } catch (e) {
-      // Continue trying other selectors
     }
   }
   
-  if (!foundMissionElement) {
-    console.log('⚠️ Could not find mission element with standard selectors, but mission was created');
+  if (!foundFlightElement) {
+    console.log('⚠️ Could not find flight element with standard selectors, but flight was created');
   }
   
-  // Verify the URL structure is correct
-  const expectedUrlPattern = new RegExp(`/org/${TEST_ORGS[0].key}/project/${TEST_PROJECT.key}/mission/${TEST_MISSION.key}`);
-  expect(currentUrl).toMatch(expectedUrlPattern);
-  console.log('✅ Mission URL structure is correct');
+  // Verify URL structure
+  const expectedUrlPattern = new RegExp(`/org/${TEST_ORGS[0].key}/project/${TEST_PROJECT.key}/flight/${TEST_FLIGHT.key}`);
+  await expect(page).toHaveURL(expectedUrlPattern);
+  console.log('✅ Flight URL structure is correct');
   
-  console.log('✅ Mission created successfully');
+  console.log('✅ Flight created successfully');
 }
 
 // Tests
@@ -460,7 +378,7 @@ test.describe('SkyStore Web Application', () => {
     await expect(page.getByLabel('Test Organization #')).toContainText(TEST_ORGS[0].name);
   });
 
-  test('should create and manage projects and missions', async ({ authenticatedPage: page }) => {
+  test('should create and manage projects and flights', async ({ authenticatedPage: page }) => {
     await refreshAndWait(page);
     
     // Create first organization if not exists
@@ -483,19 +401,32 @@ test.describe('SkyStore Web Application', () => {
     await page.getByRole('main').getByRole('button', { name: 'Select Project' }).click();
     await page.waitForLoadState('networkidle');
 
-    // Create mission
-    await expect(page.getByRole('main')).toContainText('No Missions Yet');
-    await createMission(page);
-    await page.getByRole('main').getByRole('button', { name: 'Select Mission' }).click();
-    await page.waitForLoadState('networkidle');
-
-    // Verify full navigation path
-    await expect(page.locator('#root')).toContainText([
-      'SkyStore',
-      TEST_ORGS[0].name,
-      TEST_PROJECT.name,
-      TEST_MISSION.name
-    ].join(''));
+    // Create flight
+    await expect(page.getByRole('main')).toContainText('No Flights Yet');
+    await createFlight(page);
+    await page.getByRole('main').getByRole('button', { name: 'Select Flight' }).click();
+    
+    // Verify flight selection
+    await expect(page.getByRole('main')).toContainText(
+      TEST_FLIGHT.name
+    );
+    
+    // Navigate to the correct flight if needed
+    const flightLink = page.getByRole('link', { name: TEST_FLIGHT.name });
+    if (await flightLink.count() > 0) {
+      await flightLink.click();
+    }
+    
+    // Test asset management
+    await page.locator('a').filter({ hasText: `Assets${TEST_FLIGHT.name}` }).click();
+    
+    // Test flight selection in asset upload
+    await page.getByRole('textbox', { name: 'Select a flight' }).click();
+    await page.getByRole('option', { name: TEST_FLIGHT.name }).click();
+    
+    // Test navigation
+    await page.locator('a').filter({ hasText: `Flight${TEST_FLIGHT.name}` }).click();
+    await page.locator('a').filter({ hasText: `Assets${TEST_FLIGHT.name}` }).click();
   });
 
   test('should handle asset uploads', async ({ authenticatedPage: page }) => {

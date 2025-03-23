@@ -155,9 +155,9 @@ export function Settings() {
             />
             
             <TextInput
-              label="Default Mission Name Prefix"
-              placeholder="Mission"
-              defaultValue="Mission"
+              label="Default Flight Name Prefix"
+              placeholder="Flight"
+              defaultValue="Flight"
             />
             
             <Button onClick={() => alert('Preferences saved!')} mt="md">
