@@ -12,7 +12,7 @@ import { cookie } from '@elysiajs/cookie';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { S3Client } from "./clients/S3Client";
-
+import { flightRoutes } from "./routes/flight";
 // Initialize clients
 const redis: RedisClient = RemoteRedisClient(config.redis.url);
 
@@ -83,9 +83,10 @@ app.onRequest(({ request, query, params, path }) => {
 
 app.use(assetRoutes);
 app.use(authRoutes);
+app.use(flightRoutes);
 
 // Start the server
-app.listen(4000);
+app.listen(4151);
 
 logger.info(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`

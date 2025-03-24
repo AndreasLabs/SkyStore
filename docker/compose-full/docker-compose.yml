@@ -148,7 +148,7 @@ services:
       - minio-data:/data
     networks:
       - skystore-network
-    command: server /data --console-address ":9001"
+    command: server /data --console-address ":4165"
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 30s
