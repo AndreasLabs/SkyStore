@@ -1,7 +1,7 @@
 $schema: 'https://moonrepo.dev/schemas/tasks.json'
 
 language: "docker-compose"
-type: 'tool'
+type: 'application'
 tags:
 - 'docker-compose'
 
@@ -13,52 +13,62 @@ tasks:
   postgres:
     command: 'docker compose -f @in(0) up -d postgres'
     description: 'Start the postgres container'
-    toolchain: 'system'
+  #  toolchain: 'system'
     options:
       outputStyle: 'stream'
+      runFromWorkspaceRoot: true
+      cache: false
     inputs:
     - '@files(docker-compose)'
 
   nodeodm:
     command: 'docker compose -f @in(0) up -d nodeodm'
     description: 'Start the nodeodm container'
-    toolchain: 'system'
+   # toolchain: 'system'
     options:
       outputStyle: 'stream'
+      runFromWorkspaceRoot: true
+      cache: false
     inputs:
     - '@files(docker-compose)'
 
   app:
     command: 'docker compose -f @in(0) up -d app'
     description: 'Start the app container'
-    toolchain: 'system'
+   # toolchain: 'system'
     options:
       outputStyle: 'stream'
+      runFromWorkspaceRoot: true
+      cache: false
     inputs:
     - '@files(docker-compose)'
 
   web:
     command: 'docker compose -f @in(0) up -d web'
     description: 'Start the web container'
-    toolchain: 'system'
+   #  toolchain: 'system'
     options:
       outputStyle: 'stream'
+      runFromWorkspaceRoot: true
+      cache: false
     inputs:
     - '@files(docker-compose)'
 
   redis:
     command: 'docker compose -f @in(0) up -d redis'
     description: 'Start the redis container'
-    toolchain: 'system'
+   # toolchain: 'system'
     options:
       outputStyle: 'stream'
+      runFromWorkspaceRoot: true
+      cache: false
     inputs:
     - '@files(docker-compose)'
 
   minio:
     command: 'docker compose -f @in(0) up -d minio'
     description: 'Start the minio container'
-    toolchain: 'system'
+   #toolchain: 'system'
     options:
       outputStyle: 'stream'
     inputs:
@@ -67,9 +77,11 @@ tasks:
   otel-collector:
     command: 'docker compose -f @in(0) up -d otel-collector'
     description: 'Start the otel-collector container'
-    toolchain: 'system'
+   # toolchain: 'system'
     options:
       outputStyle: 'stream'
+      runFromWorkspaceRoot: true
+      cache: false
     inputs:
     - '@files(docker-compose)'
 

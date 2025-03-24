@@ -189,7 +189,7 @@ const features = [
   {
     icon: IconCloudUpload,
     title: 'Secure Cloud Storage',
-    description: 'Store and organize all your UAV mission data in our secure cloud platform. Access your orthophotos, point clouds, and models from anywhere.'
+    description: 'Store and organize all your UAV flight data in our secure cloud platform. Access your orthophotos, point clouds, and models from anywhere.'
   },
   {
     icon: IconUsers,
@@ -224,7 +224,7 @@ const testimonials = [
 ];
 
 const stats = [
-  { value: '2,500+', label: 'Flight Missions' },
+  { value: '2,500+', label: 'Flights' },
   { value: '50 TB', label: 'Data Stored' },
   { value: '85%', label: 'Faster Analysis' },
   { value: '350+', label: 'Organizations' }
@@ -263,7 +263,7 @@ export function Home() {
                       Welcome to SkyStore
                     </Title>
                     <Text c="gray.2" size={rem(22)} maw={700} ta="center" lh={1.6}>
-                      Your complete platform for managing UAV missions, 
+                      Your complete platform for managing UAV flights, 
                       processing data, and collaborating with your team
                     </Text>
                     <Group mt={rem(20)}>
@@ -281,10 +281,10 @@ export function Home() {
                         size="lg"
                         variant="outline"
                         color="gray"
-                        onClick={() => navigate('/missions')}
+                        onClick={() => navigate('/flights')}
                         rightSection={<IconArrowRight size={18} />}
                       >
-                        Explore Missions
+                        Explore Flights
                       </Button>
                     </Group>
                   </Stack>
@@ -340,7 +340,7 @@ export function Home() {
                   Everything You Need for UAV Data Management
                 </Title>
                 <Text c="dimmed" ta="center" maw={700} mx="auto" size="lg">
-                  SkyStore provides all the tools you need to manage your drone missions,
+                  SkyStore provides all the tools you need to manage your drone flights,
                   process data, and collaborate with your team seamlessly
                 </Text>
               </Stack>
@@ -484,9 +484,9 @@ export function Home() {
                         size="lg" 
                         variant="outline" 
                         color="gray"
-                        onClick={() => navigate('/missions')}
+                        onClick={() => navigate('/flights')}
                       >
-                        View Sample Missions
+                        View Sample Flights
                       </Button>
                     </Group>
                   </Stack>
@@ -518,7 +518,7 @@ export function Home() {
                     SkyStore
                   </Title>
                   <Text size="sm" c="dimmed" maw={300}>
-                    Your complete platform for managing UAV missions, processing data, and collaborating with your team.
+                    Your complete platform for managing UAV flights, processing data, and collaborating with your team.
                   </Text>
                   <Group>
                     <ActionIcon variant="subtle" color="blue" size="lg">

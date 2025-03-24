@@ -14,7 +14,7 @@ export const createLogger = (namespace: string) => {
 export const loggers = {
   organization: createLogger('organization'),
   project: createLogger('project'),
-  mission: createLogger('mission'),
+  flight: createLogger('flight'),
   task: createLogger('task'),
   asset: createLogger('asset'),
   user: createLogger('user'),

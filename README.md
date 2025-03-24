@@ -1,12 +1,12 @@
 # SkyStore
 
-SkyStore is a modern web application for managing astronomical observation data and assets. It provides a hierarchical organization system with organizations, projects, and missions to effectively manage astronomical observations and their associated data.
+SkyStore is a modern web application for managing astronomical observation data and assets. It provides a hierarchical organization system with organizations, projects, and flights to effectively manage astronomical observations and their associated data.
 
 ## Features
 
 - **Organizations**: Create and manage organizations to group related astronomical projects
 - **Projects**: Organize work into projects within organizations
-- **Missions**: Create observation missions with detailed metadata
+- **Flights**: Create observation flights with detailed metadata
 - **Asset Management**: Upload and manage observation data and images
 - **Modern UI**: Built with React and Mantine UI components for a great user experience
 
@@ -95,3 +95,25 @@ SkyStore/
 ## License
 
 [Add your license here]
+
+## Port Mappings
+
+The following ports are used by the application:
+
+| Port | Internal Port | Container | Description |
+|------|--------------|-----------|-------------|
+| 4150 | 80 | web | Web App Frontend |
+| 4151 | 4000 | app | REST API Backend |
+| 4152 | 5432 | postgres | PostgreSQL Database |
+| 4154 | 4317 | otel-collector | OpenTelemetry Collector (gRPC) |
+| 4155 | 4318 | otel-collector | OpenTelemetry Collector (HTTP) |
+| 4156 | 9000 | clickhouse | ClickHouse Database (TCP) |
+| 4157 | 8123 | clickhouse | ClickHouse Database (HTTP) |
+| 4158 | 9181 | clickhouse | ClickHouse Database (Keeper) |
+| 4159 | 6060 | query-service | SigNoz Query Service |
+| 4160 | 3301 | frontend | SigNoz Frontend |
+| 4161 | 3000 | nodeodm | NodeODM Processing Service |
+| 4162 | 6379 | redis | Redis Database |
+| 4163 | 8001 | redis | RedisInsight UI |
+| 4164 | 9000 | minio | MinIO API |
+| 4165 | 9001 | minio | MinIO Console |

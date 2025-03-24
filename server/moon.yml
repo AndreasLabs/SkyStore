@@ -1,5 +1,4 @@
 language: "typescript"
-type: "application"
 
 project:
   name: 'server'
@@ -28,12 +27,3 @@ tasks:
     - 'compose-full:nodeodm'
     options:
       outputStyle: 'stream'
-
-  docker-dev:
-    deps:
-    - 'compose-full:postgres'
-    - 'compose-full:redis'
-    - 'compose-full:minio'
-    - 'compose-full:nodeodm'
-    env:
-      DATABASE_URL: 'postgresql://cursed_postgres:VictoryForPostgres@localhost:4152/cursed'

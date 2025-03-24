@@ -12,7 +12,7 @@ export interface Task {
   processor: 'odm';
   organization_key: string;
   project_key: string;
-  mission_key: string;
+  flight_key: string;
   asset_ids: string[];
   createdAt: string;
   updatedAt: string;
@@ -29,5 +29,5 @@ export interface CreateTaskParams {
   key: string;
   description?: string;
   status: 'pending' | 'in_progress' | 'completed' | 'failed';
-  mission_key: string;
+  flight_key: string;
 }

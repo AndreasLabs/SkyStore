@@ -3,7 +3,7 @@ import { Routes as RouterRoutes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
 
 import { MissionDashboard } from './pages/MissionDashboard';
-import { MissionAssets } from './pages/MissionAssets';
+import { FlightAssets } from './pages/FlightAssets';
 import { Profile } from './pages/Profile';
 import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
@@ -54,8 +54,8 @@ export function AppRoutes() {
         {/* Dashboard - shown when logged in */}
         <Route path="/dashboard" element={<Home />} />
         
-        {/* Mission routes */}
-        <Route path="/assets" element={<MissionAssets />} />
+        {/* Flight routes */}
+        <Route path="/assets" element={<FlightAssets />} />
         
         {/* User routes */}
         <Route path="/profile" element={<Profile />} />
