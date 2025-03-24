@@ -10,8 +10,12 @@ export const flightRoutes = createBaseRoute('/flights')
     async ({ body, store, set }: {
       body: { 
         name: string, 
-        location: string, 
-        date: string, 
+        aircraft: string,
+        latitude: number,
+        longitude: number,
+        altitude: number,
+        date: string,
+        description: string,
         metadata?: Record<string, string> 
       },
       store: { redis: any },
@@ -51,8 +55,12 @@ export const flightRoutes = createBaseRoute('/flights')
     }, {
       body: t.Object({
         name: t.String(),
-        location: t.String(),
+        aircraft: t.String(),
+        latitude: t.Number(),
+        longitude: t.Number(),
+        altitude: t.Number(),
         date: t.String(),
+        description: t.String(),
         metadata: t.Optional(t.Record(t.String(), t.String()))
       })
     }

@@ -23,12 +23,12 @@ export const flightController = {
      */
     createFlight: async (
         params: { flight: string },
-        flightData: { name: string, location: string, date: string, metadata?: Record<string, string> },
+        flightData: { name: string, aircraft: string, latitude: number, longitude: number, altitude: number, date: string, description: string },
         store: { redis: any }
     ): Promise<Flight> => {
         try {
             // Validate required fields
-            const requiredFields = ['name', 'location', 'date'];
+            const requiredFields = ['name', 'aircraft', 'latitude', 'longitude', 'altitude', 'date'];
             for (const field of requiredFields) {
                 if (!flightData[field as keyof typeof flightData]) {
                     logger.error(`${field} is required`);
@@ -42,9 +42,9 @@ export const flightController = {
                 throw new ServerError('Missing required parameter: flight', 400);
             }
 
-            logger.info('Creating flight:', { 
+            logger.info('Creating flight:', {
                 flight: params.flight,
-                name: flightData.name 
+                name: flightData.name
             });
 
             // Create flight in database
@@ -52,9 +52,12 @@ export const flightController = {
                 data: {
                     uuid: params.flight,
                     name: flightData.name,
-                    location: flightData.location,
+                    description: flightData.description,
+                    latitude: flightData.latitude,
+                    longitude: flightData.longitude,
+                    altitude: flightData.altitude,  
                     date: new Date(flightData.date),
-                    metadata: flightData.metadata || {}
+                    aircraft: flightData.aircraft,
                 }
             });
 
@@ -119,7 +122,7 @@ export const flightController = {
     listFlights: async (store: { redis: any }): Promise<Flight[]> => {
         try {
             const flights = await prisma.flight.findMany();
-            
+
             return flights;
         } catch (error) {
             logger.error('Failed to list flights:', {
