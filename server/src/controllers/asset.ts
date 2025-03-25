@@ -169,10 +169,18 @@ export const assetController = {
      * @param ownerUuid - Owner user UUID
      * @returns Array of assets
      */
-    listUserAssets: async (ownerUuid: string): Promise<AssetWithRelations[]> => {
+    /**
+     * Lists assets for a user with optional filtering
+     * 
+     * @param ownerUuid - Owner user UUID
+     * @param options - Optional query parameters
+     * @param options.flightUuid - Optional flight UUID to filter by
+     * @returns Array of assets
+     */
+    listUserAssets: async (ownerUuid: string, options?: { flightUuid?: string }): Promise<AssetWithRelations[]> => {
         try {
             const assets = await prisma.asset.findMany({
-                where: { owner_uuid: ownerUuid },
+                where: { owner_uuid: ownerUuid, flight_uuid: options?.flightUuid },
                 include: {
                     flight: true,
                 }

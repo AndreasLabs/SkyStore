@@ -58,9 +58,7 @@ export function FlightAssets() {
   const {
     data: flightData,
     isLoading: flightLoading
-  } = useFlight(selectedFlightId || '', {
-    enabled: !!selectedFlightId
-  });
+  } = useFlight(selectedFlightId || '');
 
   // Assets query based on selected flight
   const {
@@ -68,10 +66,7 @@ export function FlightAssets() {
     isLoading: assetsLoading,
     error: assetsError,
     refetch: refetchAssets
-  } = useAssets({
-    flightId: selectedFlightId,
-    enabled: !!selectedFlightId
-  });
+  } = useAssets(selectedFlightId || undefined);
 
   // Mutation hook for asset upload
   const { mutateAsync: createAsset, isPending: isUploading } = useCreateAsset();

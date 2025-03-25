@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Asset } from '@skystore/core_types';
 import { api } from '../api/apiClient';
 import { useAuth } from '../contexts/AuthContext';
-import { logger } from '../utils/logger';
+
 
 // Query keys for assets
 const assetKeys = {
@@ -12,8 +12,9 @@ const assetKeys = {
 };
 
 // API calls integrated into hooks
-const listAssets = async (owner_uuid: string, uploader_uuid: string) => {
-  const response = await api.assets.get({query: {owner_uuid, uploader_uuid}});
+const listAssets = async (owner_uuid: string, uploader_uuid: string, flight_uuid?: string) => {
+  console.log('listAssets', { owner_uuid, uploader_uuid, flight_uuid });
+  const response = await api.assets.get({query: {owner_uuid, uploader_uuid, flight_uuid}});
   return response.data;
 };
 
@@ -23,8 +24,7 @@ const getAsset = async (assetId: string) => {
 };
 
 const createAsset = async (file: File, owner_uuid: string, uploader_uuid: string, flight_uuid?: string) => {
-    logger.info('createAsset', { file, owner_uuid, uploader_uuid, flight_uuid });
-
+    console.log('createAsset', { file, owner_uuid, uploader_uuid, flight_uuid });
     const response = await api.assets.upload.post({
       file: file,
       owner_uuid: owner_uuid,
@@ -40,7 +40,7 @@ const deleteAsset = async (assetId: string) => {
 };
 
 // Hook for fetching a list of assets
-export const useAssets = () => {
+export const useAssets = (flight_uuid?: string) => {
   const { user } = useAuth();
   
   return useQuery({
@@ -48,10 +48,10 @@ export const useAssets = () => {
     queryFn: () => {
       // Only fetch if user exists
       if (!user) {
-        return { data: [] }; // Return empty array if no user
+        return []; // Return empty array if no user
       }
       // Use the user.id as both owner and uploader
-      return listAssets(user.id, user.id);
+      return listAssets(user.id, user.id, flight_uuid);
     },
     enabled: !!user, // Only run the query if user exists
   });

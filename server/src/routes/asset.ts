@@ -9,13 +9,13 @@ export const assetRoutes = createBaseRoute('/assets')
   // List all assets for a user
   .get('/', 
     async ({ query, store }: {
-      query: { owner_uuid?: string, uploader_uuid?: string },
+      query: { owner_uuid?: string, uploader_uuid?: string, flight_uuid?: string },
       store: { redis: any }
     }) => {
       try {
         logger.info('Listing assets', { query });
         // For now, we'll list by mission, but in the future this could be updated to filter by owner/uploader
-        const assets = await assetController.listUserAssets(query.owner_uuid || '');
+        const assets = await assetController.listUserAssets(query.owner_uuid || '', { flightUuid: query.flight_uuid });
 
         return {
           success: true,
@@ -50,7 +50,7 @@ export const assetRoutes = createBaseRoute('/assets')
         file: File, 
         owner_uuid: string, 
         uploader_uuid: string,
-        mission_uuid?: string
+        flight_uuid?: string
       },
       set: {
         status: number;
@@ -58,7 +58,7 @@ export const assetRoutes = createBaseRoute('/assets')
       }
     }) => {
       try {
-        const { file, owner_uuid, uploader_uuid, mission_uuid } = body;
+        const { file, owner_uuid, uploader_uuid, flight_uuid } = body;
         
         if (!file || !(file instanceof File)) {
           set.status = 400;
@@ -72,7 +72,7 @@ export const assetRoutes = createBaseRoute('/assets')
           file,
           owner_uuid,
           uploader_uuid,
-          mission_uuid
+          flight_uuid
         );
 
         return {
@@ -98,7 +98,7 @@ export const assetRoutes = createBaseRoute('/assets')
         file: t.Any(), // File type from multipart form
         owner_uuid: t.String(),
         uploader_uuid: t.String(),
-        mission_uuid: t.Optional(t.String())
+        flight_uuid: t.Optional(t.String())
       })
     }
   )
