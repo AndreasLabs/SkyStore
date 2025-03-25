@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Asset } from '@skystore/core_types';
 import { api } from '../api/apiClient';
 import { useAuth } from '../contexts/AuthContext';
+import { logger } from '../utils/logger';
 
 // Query keys for assets
 const assetKeys = {
@@ -22,25 +23,16 @@ const getAsset = async (assetId: string) => {
 };
 
 const createAsset = async (file: File, owner_uuid: string, uploader_uuid: string, flight_uuid?: string) => {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('owner_uuid', owner_uuid);
-  formData.append('uploader_uuid', uploader_uuid);
+    logger.info('createAsset', { file, owner_uuid, uploader_uuid, flight_uuid });
 
-  if (flight_uuid) {
-    formData.append('flight_uuid', flight_uuid);
-  }
+    const response = await api.assets.upload.post({
+      file: file,
+      owner_uuid: owner_uuid,
+      uploader_uuid: uploader_uuid,
+      flight_uuid: flight_uuid,
+    });
 
-  const response = await fetch('/api/assets', {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to upload asset');
-  }
-
-  return response.json();
+  return response.data;
 };
 
 const deleteAsset = async (assetId: string) => {

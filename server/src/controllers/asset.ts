@@ -8,7 +8,7 @@ import { record } from '@elysiajs/opentelemetry';
 // Type aliasing for Asset from Prisma
 type Asset = Awaited<ReturnType<PrismaClient["asset"]["findUnique"]>>;
 type AssetWithRelations = Asset & {
-  mission?: { uuid: string; name: string; description: string | null } | null;
+  flight?: { uuid: string; name: string; description: string | null } | null;
 }
 
 // Accepted MIME types for upload
@@ -46,7 +46,7 @@ export const assetController = {
      * Creates a new asset from an uploaded file
      * 
      * @param file - The uploaded file data
-     * @param missionUuid - Optional mission UUID
+     * @param flightUuid - Optional flight UUID
      * 
      * @returns The created asset metadata
      */
@@ -54,7 +54,7 @@ export const assetController = {
         file: File,
         ownerUuid: string,
         uploaderUuid: string,
-        missionUuid?: string,
+        flightUuid?: string,
     ): Promise<AssetWithRelations> => {
         // Validate file type
         if (!ACCEPTED_MIME_TYPES.has(file.type)) {
@@ -97,13 +97,13 @@ export const assetController = {
                         size_bytes: file.size,
                         download_url: downloadUrl,
                         thumbnail_url: thumbnailUrl,
-                        mission_uuid: missionUuid,
+                        flight_uuid: flightUuid,
                         owner_uuid: ownerUuid,
                         uploader_uuid: uploaderUuid,
                         access_uuids: [ownerUuid], // By default, owner has access
                     },
                     include: {
-                        mission: false,
+                        flight: true,
                     }
                 });
                 
@@ -130,7 +130,7 @@ export const assetController = {
             const asset = await prisma.asset.findUnique({
                 where: { uuid: assetId },
                 include: {
-                    mission: true,
+                    flight: true,
                 }
             });
 
@@ -174,7 +174,7 @@ export const assetController = {
             const assets = await prisma.asset.findMany({
                 where: { owner_uuid: ownerUuid },
                 include: {
-                    mission: true,
+                    flight: true,
                 }
             });
 

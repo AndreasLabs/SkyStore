@@ -7,6 +7,8 @@
     "core_types"
   ],
   "dependencies": {
-    "adze": "^2.2.1"
+    "@mantine/dates": "^7.17.2",
+    "adze": "^2.2.1",
+    "dayjs": "^1.11.13"
   }
 }

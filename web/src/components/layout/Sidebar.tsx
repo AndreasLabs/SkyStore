@@ -7,6 +7,7 @@ import {
   IconPhoto,
   IconSettings,
   IconChecklist,
+  IconPlane,
 } from '@tabler/icons-react';
 
 
@@ -62,6 +63,13 @@ export function Sidebar() {
       path: `/assets`,
       active: location.pathname.includes('/assets'),
       onClick: () => navigate(`/assets`),
+    },
+    {
+      label: 'Flights',
+      icon: <IconPlane size="1.2rem" />,
+      path: `/flights`,
+      active: location.pathname.includes('/flights'),
+      onClick: () => navigate(`/flights`),
     },
     {
       label: 'Settings',

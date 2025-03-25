@@ -2,9 +2,9 @@ import { RestResult } from '@skystore/core_types';
 import { treaty } from '@elysiajs/eden';
 import type { App } from '../../../server/src/index';
 import { getToken } from '../utils/authUtils';
-
+import {API_URL} from '../constants';
 // Create Eden Treaty client with auth header
-export const api = treaty<App>('http://localhost:4000', {
+export const api = treaty<App>(API_URL, {
   fetcher: (url, init) => {
     // Get the auth token from localStorage
     const token = getToken();

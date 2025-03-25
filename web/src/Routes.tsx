@@ -12,7 +12,7 @@ import { ResetPassword } from './pages/ResetPassword';
 
 import { Home } from './pages/Home';
 import { useIsAuthenticated } from './hooks/useAuthHooks';
-
+import { Flights } from './pages/Flights';
 // Protected route component that redirects to login if not authenticated
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useIsAuthenticated();
@@ -56,7 +56,7 @@ export function AppRoutes() {
         
         {/* Flight routes */}
         <Route path="/assets" element={<FlightAssets />} />
-        
+        <Route path="/flights" element={<Flights />} />
         {/* User routes */}
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
