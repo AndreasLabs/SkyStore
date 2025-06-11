@@ -7,17 +7,19 @@ name: workstreams
 prefect-version: 3.4.5
 
 # build section allows you to manage and build docker images
-build: null
+build:
+- prefect_docker.deployments.steps.build_docker_image:
+    id: build-image
+    requires: prefect-docker>=0.6.0
+    image_name: workstream-runner
+    tag: latest
+    dockerfile: Dockerfile
 
 # push section allows you to manage if and how this project is uploaded to remote locations
 push: null
 
 # pull section allows you to provide instructions for cloning this project in remote locations
-pull:
-- prefect.deployments.steps.git_clone:
-    repository: git@github.com:Andreas-Labs/SkyStore.git
-    branch: vfp/prefect
-    access_token: '{{ prefect.blocks.secret.deployment-test-hello-main-repo-token }}'
+pull: null
 
 # the deployments section allows you to provide configuration for deploying flows
 deployments:
@@ -31,5 +33,30 @@ deployments:
   work_pool:
     name: my-docker-pool
     work_queue_name: null
-    job_variables: {}
+    job_variables:
+      image: "{{ build-image.image }}"
+      image_pull_policy: "never"
+  schedules: []
+
+- name: vggt-s3-processor
+  version: null
+  tags: [ "vggt", "s3", "image-processing" ]
+  concurrency_limit: null
+  description: "Process images from S3 with VGGT and save results back to S3"
+  entrypoint: vggt_s3_task.py:vggt_process_images_from_s3
+  parameters:
+    bucket_name: "skystore"
+    s3_image_paths: [ "test_images/example.jpg" ]
+    output_prefix: "vggt_results/default_run"
+    minio_endpoint: "minio"
+    minio_port: 9000
+    minio_access_key: "minioadmin"
+    minio_secret_key: "minioadmin"
+    use_point_map: false
+  work_pool:
+    name: my-docker-pool
+    work_queue_name: null
+    job_variables:
+      image: "{{ build-image.image }}"
+      image_pull_policy: "never"
   schedules: []
