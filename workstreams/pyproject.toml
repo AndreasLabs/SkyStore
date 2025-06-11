@@ -1,7 +1,16 @@
 [project]
 name = "workstreams"
 version = "0.1.0"
-description = "Add your description here"
+description = "SkyStore Prefect workstreams for processing with VGGT"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "prefect>=3.4.5",
+    "torch==2.3.1",
+    "torchvision==0.18.1",
+    "numpy>=1.24.0",
+    "Pillow>=10.0.0",
+    "huggingface_hub>=0.20.0",
+    "boto3>=1.34.0",
+    "botocore>=1.34.0"
+]
