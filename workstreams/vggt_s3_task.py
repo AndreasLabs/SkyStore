@@ -9,7 +9,7 @@ from io import BytesIO
 import tempfile
 import shutil
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
 import numpy as np
 
@@ -52,7 +52,7 @@ except ImportError as e:
     VGGT_AVAILABLE = False
 
 
-@task
+@task(name="Setup S3 Client", description="Connect to MinIO S3-compatible storage")
 def setup_s3_client(
     endpoint_url: str = "http://minio:9000",
     region_name: str = "us-east-1",
@@ -83,7 +83,7 @@ def setup_s3_client(
     return s3_client
 
 
-@task
+@task(name="Download Images", description="Download images from S3 storage to local filesystem")
 def download_images_from_s3(
     s3_client: boto3.client,
     bucket_name: str,
@@ -136,7 +136,7 @@ def check_vggt_install():
     return True
 
 
-@task
+@task(name="Load VGGT Model", description="Initialize and load the VGGT model weights")
 def load_vggt_model(device: str = None) -> torch.nn.Module:
     """
     Load the VGGT model and return it.
@@ -174,25 +174,26 @@ def load_vggt_model(device: str = None) -> torch.nn.Module:
     return model
 
 
-@task
-def process_images_with_vggt(
+@task(name="VGGT Aggregation", description="Run VGGT aggregator on input images")
+def run_vggt_aggregator(
     model: torch.nn.Module,
-    image_paths: List[str], 
-    use_point_map: bool = False
-) -> Dict[str, Any]:
+    image_paths: List[str]
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Process images with the VGGT model.
+    Run the VGGT aggregator on input images.
     
     Args:
         model: Loaded VGGT model
         image_paths: List of local image paths
-        use_point_map: Whether to use point map instead of depth map for 3D points
         
     Returns:
-        Dict[str, Any]: Dictionary containing the VGGT predictions
+        Tuple containing:
+            - images_batch: The preprocessed images batch
+            - aggregated_tokens_list: Token list from aggregator
+            - ps_idx: Point sampling indices
     """
     device = next(model.parameters()).device
-    logger.info(f"Processing {len(image_paths)} images with VGGT on {device}")
+    logger.info(f"Running VGGT aggregator on {len(image_paths)} images on {device}")
     
     # Determine dtype based on GPU capabilities
     if torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8:
@@ -204,41 +205,198 @@ def process_images_with_vggt(
     logger.info("Loading and preprocessing images")
     images = load_and_preprocess_images(image_paths).to(device)
     
-    results = {}
-    
     with torch.no_grad():
         with torch.cuda.amp.autocast(dtype=dtype):
             logger.info("Running VGGT aggregator")
             # Add batch dimension for a single scene
             images_batch = images[None]
             aggregated_tokens_list, ps_idx = model.aggregator(images_batch)
-            
-            # Predict cameras
+    
+    return images_batch, aggregated_tokens_list, ps_idx
+
+
+@task(name="Predict Cameras", description="Predict camera parameters from VGGT aggregated tokens")
+def predict_cameras(
+    model: torch.nn.Module,
+    aggregated_tokens_list: torch.Tensor,
+    images_batch: torch.Tensor
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Predict camera parameters using the VGGT camera head.
+    
+    Args:
+        model: Loaded VGGT model
+        aggregated_tokens_list: Token list from aggregator
+        images_batch: The preprocessed images batch
+        
+    Returns:
+        Tuple containing:
+            - extrinsic: Camera extrinsic parameters
+            - intrinsic: Camera intrinsic parameters
+    """
+    device = next(model.parameters()).device
+    
+    # Determine dtype based on GPU capabilities
+    if torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8:
+        dtype = torch.bfloat16
+    else:
+        dtype = torch.float16
+    
+    with torch.no_grad():
+        with torch.cuda.amp.autocast(dtype=dtype):
             logger.info("Predicting camera parameters")
             pose_enc = model.camera_head(aggregated_tokens_list)[-1]
             extrinsic, intrinsic = pose_encoding_to_extri_intri(pose_enc, images_batch.shape[-2:])
-            
-            # Predict depth maps
+    
+    return extrinsic, intrinsic
+
+
+@task(name="Predict Depth Maps", description="Predict depth maps from VGGT aggregated tokens")
+def predict_depth_maps(
+    model: torch.nn.Module,
+    aggregated_tokens_list: torch.Tensor,
+    images_batch: torch.Tensor,
+    ps_idx: torch.Tensor
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Predict depth maps using the VGGT depth head.
+    
+    Args:
+        model: Loaded VGGT model
+        aggregated_tokens_list: Token list from aggregator
+        images_batch: The preprocessed images batch
+        ps_idx: Point sampling indices
+        
+    Returns:
+        Tuple containing:
+            - depth_map: Predicted depth maps
+            - depth_conf: Depth confidence maps
+    """
+    device = next(model.parameters()).device
+    
+    # Determine dtype based on GPU capabilities
+    if torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8:
+        dtype = torch.bfloat16
+    else:
+        dtype = torch.float16
+    
+    with torch.no_grad():
+        with torch.cuda.amp.autocast(dtype=dtype):
             logger.info("Predicting depth maps")
             depth_map, depth_conf = model.depth_head(aggregated_tokens_list, images_batch, ps_idx)
-            
-            # Predict point maps
+    
+    return depth_map, depth_conf
+
+
+@task(name="Predict Point Maps", description="Predict point maps from VGGT aggregated tokens")
+def predict_point_maps(
+    model: torch.nn.Module,
+    aggregated_tokens_list: torch.Tensor,
+    images_batch: torch.Tensor,
+    ps_idx: torch.Tensor
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Predict point maps using the VGGT point head.
+    
+    Args:
+        model: Loaded VGGT model
+        aggregated_tokens_list: Token list from aggregator
+        images_batch: The preprocessed images batch
+        ps_idx: Point sampling indices
+        
+    Returns:
+        Tuple containing:
+            - point_map: Predicted point maps
+            - point_conf: Point confidence maps
+    """
+    device = next(model.parameters()).device
+    
+    # Determine dtype based on GPU capabilities
+    if torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8:
+        dtype = torch.bfloat16
+    else:
+        dtype = torch.float16
+    
+    with torch.no_grad():
+        with torch.cuda.amp.autocast(dtype=dtype):
             logger.info("Predicting point maps")
             point_map, point_conf = model.point_head(aggregated_tokens_list, images_batch, ps_idx)
-            
-            # Construct 3D points based on user preference
-            logger.info(f"Constructing final 3D point cloud (use_point_map={use_point_map})")
-            if use_point_map:
-                final_point_map = point_map.squeeze(0)
-                final_point_conf = point_conf.squeeze(0)
-            else:
-                # Unproject depth map to point map
-                final_point_map = unproject_depth_map_to_point_map(
-                    depth_map.squeeze(0), 
-                    extrinsic.squeeze(0), 
-                    intrinsic.squeeze(0)
-                )
-                final_point_conf = depth_conf.squeeze(0)
+    
+    return point_map, point_conf
+
+
+@task(name="Construct 3D Point Cloud", description="Construct final 3D point cloud from depth or point maps")
+def construct_point_cloud(
+    extrinsic: torch.Tensor,
+    intrinsic: torch.Tensor,
+    depth_map: torch.Tensor,
+    depth_conf: torch.Tensor,
+    point_map: torch.Tensor,
+    point_conf: torch.Tensor,
+    use_point_map: bool = False
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Construct the final 3D point cloud based on user preference.
+    
+    Args:
+        extrinsic: Camera extrinsic parameters
+        intrinsic: Camera intrinsic parameters
+        depth_map: Predicted depth maps
+        depth_conf: Depth confidence maps
+        point_map: Predicted point maps
+        point_conf: Point confidence maps
+        use_point_map: Whether to use point map instead of depth map for 3D points
+        
+    Returns:
+        Tuple containing:
+            - final_point_map: Final 3D point map
+            - final_point_conf: Point confidence values
+    """
+    logger.info(f"Constructing final 3D point cloud (use_point_map={use_point_map})")
+    
+    if use_point_map:
+        final_point_map = point_map.squeeze(0)
+        final_point_conf = point_conf.squeeze(0)
+    else:
+        # Unproject depth map to point map
+        final_point_map = unproject_depth_map_to_point_map(
+            depth_map.squeeze(0), 
+            extrinsic.squeeze(0), 
+            intrinsic.squeeze(0)
+        )
+        final_point_conf = depth_conf.squeeze(0)
+    
+    return final_point_map, final_point_conf
+
+
+@task(name="Prepare Results", description="Prepare and format VGGT results for saving")
+def prepare_results(
+    extrinsic: torch.Tensor,
+    intrinsic: torch.Tensor,
+    depth_map: torch.Tensor,
+    depth_conf: torch.Tensor,
+    point_map: torch.Tensor,
+    point_conf: torch.Tensor,
+    final_point_map: torch.Tensor,
+    final_point_conf: torch.Tensor
+) -> Dict[str, Any]:
+    """
+    Prepare and format the VGGT results for saving.
+    
+    Args:
+        extrinsic: Camera extrinsic parameters
+        intrinsic: Camera intrinsic parameters
+        depth_map: Predicted depth maps
+        depth_conf: Depth confidence maps
+        point_map: Predicted point maps
+        point_conf: Point confidence maps
+        final_point_map: Final 3D point map
+        final_point_conf: Point confidence values
+        
+    Returns:
+        Dict[str, Any]: Dictionary containing the VGGT predictions
+    """
+    logger.info("Preparing results for saving")
     
     # Helper function to safely move data to CPU
     def to_cpu(data):
@@ -247,7 +405,6 @@ def process_images_with_vggt(
         return data
     
     # Store results, safely handling both PyTorch tensors and NumPy arrays
-    logger.info("Moving results to CPU")
     results = {
         "extrinsic": to_cpu(extrinsic.squeeze(0)),
         "intrinsic": to_cpu(intrinsic.squeeze(0)),
@@ -262,7 +419,7 @@ def process_images_with_vggt(
     return results
 
 
-@task
+@task(name="Save Results to S3", description="Upload VGGT processing results back to S3 storage")
 def save_results_to_s3(
     s3_client: boto3.client,
     bucket_name: str,
@@ -305,7 +462,9 @@ def save_results_to_s3(
     return output_paths
 
 
-@flow
+@flow(name="VGGT Image Processing Pipeline", 
+      description="Process images with VGGT model and save 3D information to S3",
+      log_prints=True)
 def vggt_process_images_from_s3(
     bucket_name: str,
     s3_image_paths: List[str],
@@ -335,9 +494,11 @@ def vggt_process_images_from_s3(
     # Check if VGGT is available
     if not check_vggt_install():
         raise ImportError("VGGT package is not available. Cannot proceed with processing.")
-        
-    # Set up S3 client
-    logger.info(f"Starting VGGT processing flow for {len(s3_image_paths)} images")
+    
+    print(f"Starting VGGT processing flow for {len(s3_image_paths)} images")
+    print(f"Connection to MinIO at {minio_endpoint}:{minio_port}")
+    
+    # STAGE 1: Set up S3 client
     endpoint_url = f"http://{minio_endpoint}:{minio_port}"
     s3_client = setup_s3_client(
         endpoint_url=endpoint_url,
@@ -347,10 +508,11 @@ def vggt_process_images_from_s3(
     
     # Create a temporary directory for the images
     temp_dir = tempfile.mkdtemp()
-    logger.info(f"Created temporary directory at {temp_dir}")
+    print(f"Created temporary directory at {temp_dir}")
     
     try:
-        # Download images from S3
+        # STAGE 2: Download images from S3
+        print("Stage 2: Downloading images from S3")
         local_image_paths = download_images_from_s3(
             s3_client=s3_client,
             bucket_name=bucket_name,
@@ -358,17 +520,70 @@ def vggt_process_images_from_s3(
             local_dir=temp_dir
         )
         
-        # Load VGGT model
+        # STAGE 3: Load VGGT model
+        print("Stage 3: Loading VGGT model")
         model = load_vggt_model()
         
-        # Process images with VGGT
-        results = process_images_with_vggt(
+        # STAGE 4: Process images with VGGT
+        print("Stage 4: Processing images with VGGT")
+        images_batch, aggregated_tokens_list, ps_idx = run_vggt_aggregator(
             model=model,
-            image_paths=local_image_paths,
+            image_paths=local_image_paths
+        )
+        
+        # STAGE 5: Predict cameras
+        print("Stage 5: Predicting cameras")
+        extrinsic, intrinsic = predict_cameras(
+            model=model,
+            aggregated_tokens_list=aggregated_tokens_list,
+            images_batch=images_batch
+        )
+        
+        # STAGE 6: Predict depth maps
+        print("Stage 6: Predicting depth maps")
+        depth_map, depth_conf = predict_depth_maps(
+            model=model,
+            aggregated_tokens_list=aggregated_tokens_list,
+            images_batch=images_batch,
+            ps_idx=ps_idx
+        )
+        
+        # STAGE 7: Predict point maps
+        print("Stage 7: Predicting point maps")
+        point_map, point_conf = predict_point_maps(
+            model=model,
+            aggregated_tokens_list=aggregated_tokens_list,
+            images_batch=images_batch,
+            ps_idx=ps_idx
+        )
+        
+        # STAGE 8: Construct 3D point cloud
+        print("Stage 8: Constructing 3D point cloud")
+        final_point_map, final_point_conf = construct_point_cloud(
+            extrinsic=extrinsic,
+            intrinsic=intrinsic,
+            depth_map=depth_map,
+            depth_conf=depth_conf,
+            point_map=point_map,
+            point_conf=point_conf,
             use_point_map=use_point_map
         )
         
-        # Save results back to S3
+        # STAGE 9: Prepare results
+        print("Stage 9: Preparing results")
+        results = prepare_results(
+            extrinsic=extrinsic,
+            intrinsic=intrinsic,
+            depth_map=depth_map,
+            depth_conf=depth_conf,
+            point_map=point_map,
+            point_conf=point_conf,
+            final_point_map=final_point_map,
+            final_point_conf=final_point_conf
+        )
+        
+        # STAGE 10: Save results back to S3
+        print("Stage 10: Saving results to S3")
         output_paths = save_results_to_s3(
             s3_client=s3_client,
             bucket_name=bucket_name,
@@ -376,11 +591,12 @@ def vggt_process_images_from_s3(
             output_prefix=output_prefix
         )
         
+        print("VGGT processing completed successfully")
         return output_paths
     
     finally:
         # Clean up temporary directory
-        logger.info(f"Cleaning up temporary directory {temp_dir}")
+        print(f"Cleaning up temporary directory {temp_dir}")
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
