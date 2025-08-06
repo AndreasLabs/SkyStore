@@ -14,7 +14,7 @@ export class S3Client {
             accessKeyId: process.env.MINIO_ACCESS_KEY || "minioadmin",
             secretAccessKey: process.env.MINIO_SECRET_KEY || "minioadmin",
             bucket: bucket,
-            endpoint: `http://${process.env.MINIO_ENDPOINT || "localhost"}:${process.env.MINIO_PORT || "9500"}`,
+            endpoint: `http://${process.env.MINIO_ENDPOINT || "localhost"}:${process.env.MINIO_PORT || "9000"}`,
             // For GCP, would be: endpoint: "https://storage.googleapis.com"
         });
 

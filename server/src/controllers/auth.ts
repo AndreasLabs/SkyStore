@@ -1,6 +1,7 @@
 import prisma from '../lib/prisma';
 import { ServerError } from '../types/ServerError';
 import logger from '../logger';
+import { S3Client } from '../clients/S3Client';
 import { randomUUID } from 'crypto';
 
 /**
@@ -53,6 +54,12 @@ export const authController = {
         },
       });
 
+      // Initialize S3 storage structure for the new user
+      const s3Client = S3Client.getInstance();
+      await s3Client.ensureUserStructure(user.id);
+      await s3Client.ensureDropboxStructure(user.id);
+      await s3Client.ensureAssetsStructure(user.id, user.id);
+
       // Remove password from returned user
       const { password: _, ...userWithoutPassword } = user;
       
@@ -92,6 +99,20 @@ export const authController = {
       
       if (!isValidPassword) {
         throw new ServerError('Invalid credentials', 401);
+      }
+
+      // Ensure S3 storage structures exist for the user
+      try {
+        const s3Client = S3Client.getInstance();
+        await s3Client.ensureUserStructure(user.id);
+        await s3Client.ensureDropboxStructure(user.id);
+        await s3Client.ensureAssetsStructure(user.id, user.id);
+      } catch (s3Error) {
+        // Log the error but don't fail the login - the user can still login even if S3 structure creation fails
+        logger.error('Failed to ensure S3 structures during login:', {
+          user_id: user.id,
+          error: s3Error instanceof Error ? s3Error.message : String(s3Error)
+        });
       }
 
       // Remove password from returned user
@@ -208,6 +229,20 @@ export const authController = {
 
       if (!user) {
         throw new ServerError('User not found', 404);
+      }
+
+      // Ensure S3 storage structures exist for the user
+      try {
+        const s3Client = S3Client.getInstance();
+        await s3Client.ensureUserStructure(user.id);
+        await s3Client.ensureDropboxStructure(user.id);
+        await s3Client.ensureAssetsStructure(user.id, user.id);
+      } catch (s3Error) {
+        // Log the error but don't fail the profile fetch - the user can still access their profile even if S3 structure creation fails
+        logger.error('Failed to ensure S3 structures during profile fetch:', {
+          user_id: user.id,
+          error: s3Error instanceof Error ? s3Error.message : String(s3Error)
+        });
       }
 
       // Remove password from returned user

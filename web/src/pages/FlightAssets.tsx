@@ -42,7 +42,7 @@ export function FlightAssets() {
   const navigate = useNavigate();
   const { flightId } = useParams<{ flightId?: string }>();
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [selectedFlightId, setSelectedFlightId] = useState<string | null>(flightId || null);
+  const [selectedFlightId, setSelectedFlightId] = useState<string | undefined>(flightId);
   const { user } = useAuth();
   
   // Modal controls
@@ -85,14 +85,7 @@ export function FlightAssets() {
   }, [assets, selectedFlightId]);
 
   const handleFileUpload = async (files: File[] | null) => {
-    if (!files || !user || !selectedFlightId) {
-      if (!selectedFlightId) {
-        notifications.show({
-          title: 'No Flight Selected',
-          message: 'Please select or create a flight before uploading assets',
-          color: 'yellow',
-        });
-      }
+    if (!files || !user) {
       return;
     }
 
@@ -104,7 +97,7 @@ export function FlightAssets() {
         // Upload the file using the createAsset hook
         await createAsset({ 
           file,
-          flight_uuid: selectedFlightId
+          ...(selectedFlightId && { flight_uuid: selectedFlightId })
         });
         setUploadProgress(((i + 1) / files.length) * 100);
       }
@@ -176,14 +169,14 @@ export function FlightAssets() {
             <Group justify="space-between" align="flex-start">
               <Stack gap={4}>
                 <Group gap="xs" align="center">
-                  <Title order={2} c="white">Flight Assets</Title>
+                  <Title order={2} c="white">Asset Management</Title>
                   {flightData && (
                     <Badge color="blue" variant="light" size="lg">
-                      {flightData.name}
+                      Filtered by: {flightData.name}
                     </Badge>
                   )}
                 </Group>
-                <Text c="white" opacity={0.9} size="sm">Upload and manage observation data and images</Text>
+                <Text c="white" opacity={0.9} size="sm">Upload and manage all your observation data and images</Text>
               </Stack>
               <Group>
                 <FileButton onChange={handleFileUpload} accept="image/*,application/fits" multiple>
@@ -194,7 +187,6 @@ export function FlightAssets() {
                       loading={isUploading}
                       variant="white"
                       radius="md"
-                      disabled={!selectedFlightId}
                     >
                       Upload Assets
                     </Button>
@@ -208,9 +200,9 @@ export function FlightAssets() {
         {/* Flight selection */}
         <Paper withBorder p="md" radius="md">
           <Stack gap="md">
-            <Title order={4}>Select Flight</Title>
+            <Title order={4}>Filter by Flight (Optional)</Title>
             <Text size="sm" c="dimmed">
-              Choose a flight to view or upload assets for, or create a new flight.
+              Optionally choose a flight to filter assets, or create a new flight to organize your assets.
             </Text>
             
             <Group align="flex-end">
@@ -219,7 +211,7 @@ export function FlightAssets() {
                 placeholder="Select a flight"
                 data={flightOptions}
                 value={selectedFlightId}
-                onChange={setSelectedFlightId}
+                onChange={(value) => setSelectedFlightId(value || undefined)}
                 searchable
                 clearable
                 style={{ flex: 1 }}
@@ -259,95 +251,71 @@ export function FlightAssets() {
           )}
         </Transition>
 
-        {/* Asset grid section - only show if flight is selected */}
-        {selectedFlightId ? (
-          <>
-            {assetsLoading ? (
-              <Center p="xl">
-                <Stack align="center" gap="md">
-                  <Loader size="lg" color="blue" />
-                  <Text c="dimmed" size="sm">Loading assets...</Text>
-                </Stack>
-              </Center>
-            ) : assetsError ? (
-              <Card withBorder p="xl" radius="md" shadow="sm">
-                <Stack align="center" gap="md">
-                  <ThemeIcon size={60} radius={100} color="red" variant="light">
-                    <IconInfoCircle size={30} stroke={1.5} />
-                  </ThemeIcon>
-                  <Title order={3} ta="center">Failed to load assets</Title>
-                  <Text c="dimmed" ta="center" maw={500} mx="auto">
-                    We couldn't retrieve your asset data. Please try again or contact support if the problem persists.
-                  </Text>
-                  <Button 
-                    onClick={() => refetchAssets()} 
-                    variant="light" 
-                    color="blue"
-                    leftSection={<IconArrowRight size={16} />}
-                    radius="md"
-                  >
-                    Retry
-                  </Button>
-                </Stack>
-              </Card>
-            ) : assets.data?.length === 0 ? (
-              <Card withBorder p={40} radius="md" shadow="sm">
-                <Stack align="center" gap="lg">
-                  <ThemeIcon size={80} radius={100} color="blue" variant="light">
-                    <IconPhoto size={40} stroke={1.5} />
-                  </ThemeIcon>
-                  <Stack gap="sm" align="center">
-                    <Title order={2} ta="center">No Assets Yet</Title>
-                    <Text ta="center" c="dimmed" maw={450} mx="auto">
-                      Upload your first observation data or image to get started with your flight
-                    </Text>
-                  </Stack>
-                  <FileButton onChange={handleFileUpload} accept="image/*,application/fits" multiple>
-                    {(props) => (
-                      <Button
-                        {...props}
-                        variant="filled"
-                        color="blue"
-                        size="md"
-                        radius="md"
-                        leftSection={<IconUpload size={18} />}
-                        loading={isUploading}
-                      >
-                        Upload Your First Asset
-                      </Button>
-                    )}
-                  </FileButton>
-                </Stack>
-              </Card>
-            ) : (
-              <AssetGrid
-                assets={assets.data || []}
-                onView={(asset) => console.log('View asset', asset)}
-                onDownload={(asset) => window.open(asset.download_url, '_blank')}
-                onDelete={(asset) => console.log('Delete asset', asset)}
-              />
-            )}
-          </>
-        ) : (
+        {/* Asset grid section */}
+        {assetsLoading ? (
+          <Center p="xl">
+            <Stack align="center" gap="md">
+              <Loader size="lg" color="blue" />
+              <Text c="dimmed" size="sm">Loading assets...</Text>
+            </Stack>
+          </Center>
+        ) : assetsError ? (
           <Card withBorder p="xl" radius="md" shadow="sm">
             <Stack align="center" gap="md">
-              <ThemeIcon size={60} radius={100} color="blue" variant="light">
-                <IconPlane size={30} stroke={1.5} />
+              <ThemeIcon size={60} radius={100} color="red" variant="light">
+                <IconInfoCircle size={30} stroke={1.5} />
               </ThemeIcon>
-              <Title order={3} ta="center">Select a Flight</Title>
+              <Title order={3} ta="center">Failed to load assets</Title>
               <Text c="dimmed" ta="center" maw={500} mx="auto">
-                Please select an existing flight or create a new one to view and manage assets.
+                We couldn't retrieve your asset data. Please try again or contact support if the problem persists.
               </Text>
               <Button 
+                onClick={() => refetchAssets()} 
                 variant="light" 
                 color="blue"
-                leftSection={<IconPlus size={16} />}
-                onClick={openCreateFlight}
+                leftSection={<IconArrowRight size={16} />}
+                radius="md"
               >
-                Create New Flight
+                Retry
               </Button>
             </Stack>
           </Card>
+        ) : assets.data?.length === 0 ? (
+          <Card withBorder p={40} radius="md" shadow="sm">
+            <Stack align="center" gap="lg">
+              <ThemeIcon size={80} radius={100} color="blue" variant="light">
+                <IconPhoto size={40} stroke={1.5} />
+              </ThemeIcon>
+              <Stack gap="sm" align="center">
+                <Title order={2} ta="center">No Assets Yet</Title>
+                <Text ta="center" c="dimmed" maw={450} mx="auto">
+                  Upload your first observation data or image to get started
+                </Text>
+              </Stack>
+              <FileButton onChange={handleFileUpload} accept="image/*,application/fits" multiple>
+                {(props) => (
+                  <Button
+                    {...props}
+                    variant="filled"
+                    color="blue"
+                    size="md"
+                    radius="md"
+                    leftSection={<IconUpload size={18} />}
+                    loading={isUploading}
+                  >
+                    Upload Your First Asset
+                  </Button>
+                )}
+              </FileButton>
+            </Stack>
+          </Card>
+        ) : (
+          <AssetGrid
+            assets={assets.data || []}
+            onView={(asset) => console.log('View asset', asset)}
+            onDownload={(asset) => window.open(asset.download_url, '_blank')}
+            onDelete={(asset) => console.log('Delete asset', asset)}
+          />
         )}
       </Stack>
 

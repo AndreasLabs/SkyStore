@@ -57,7 +57,12 @@ interface Asset {
   uploaded_at: Date;
   download_url: string;
   thumbnail_url?: string | null;
-  mission_uuid?: string | null;
+  flight_uuid?: string | null;
+  flight?: {
+    uuid: string;
+    name: string;
+    description: string | null;
+  } | null;
   owner_uuid: string;
   uploader_uuid: string;
   access_uuids: string[];
@@ -74,6 +79,7 @@ interface AssetGridProps {
 interface FilterState {
   search: string;
   type: string;
+  flight: string;
   sortBy: 'name' | 'date' | 'size';
   sortDirection: 'asc' | 'desc';
 }
@@ -151,14 +157,22 @@ export function AssetGrid({ assets, onView, onDownload, onDelete }: AssetGridPro
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     type: 'all',
+    flight: 'all',
     sortBy: 'date',
     sortDirection: 'desc',
   });
 
-  // Compute unique file types from assets
+  // Compute unique file types and flights from assets
   const fileTypes = useMemo(() => {
     const types = new Set(assets.map(asset => asset.file_type.split('/')[1] || asset.extension));
     return ['all', ...Array.from(types)];
+  }, [assets]);
+
+  const flights = useMemo(() => {
+    const uniqueFlights = new Set(assets
+      .filter(asset => asset.flight)
+      .map(asset => asset.flight!.uuid));
+    return ['all', 'none', ...Array.from(uniqueFlights)];
   }, [assets]);
 
   // Filter and sort assets
@@ -168,7 +182,10 @@ export function AssetGrid({ assets, onView, onDownload, onDelete }: AssetGridPro
         const matchesSearch = asset.name.toLowerCase().includes(filters.search.toLowerCase());
         const matchesType = filters.type === 'all' || 
           (asset.file_type.split('/')[1] || asset.extension) === filters.type;
-        return matchesSearch && matchesType;
+        const matchesFlight = filters.flight === 'all' || 
+          (filters.flight === 'none' && !asset.flight) ||
+          asset.flight?.uuid === filters.flight;
+        return matchesSearch && matchesType && matchesFlight;
       })
       .sort((a, b) => {
         let comparison = 0;
@@ -488,6 +505,35 @@ export function AssetGrid({ assets, onView, onDownload, onDelete }: AssetGridPro
               </Menu>
               <Menu shadow="md" width={200}>
                 <Menu.Target>
+                  <Button variant="light" leftSection={<IconMap size={16} />}>
+                    Filter Flight
+                  </Button>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Label>Flight</Menu.Label>
+                  {flights.map(flightId => {
+                    const flight = assets.find(a => a.flight?.uuid === flightId)?.flight;
+                    return (
+                      <Menu.Item
+                        key={flightId}
+                        onClick={() => {
+                          setFilters({ ...filters, flight: flightId });
+                          setCurrentPage(1); // Reset page when filter changes
+                        }}
+                        rightSection={filters.flight === flightId && <IconChevronRight size={14} />}
+                      >
+                        {
+                          flightId === 'all' ? 'All Flights' :
+                          flightId === 'none' ? 'No Flight' :
+                          flight?.name || 'Unknown Flight'
+                        }
+                      </Menu.Item>
+                    );
+                  })}
+                </Menu.Dropdown>
+              </Menu>
+              <Menu shadow="md" width={200}>
+                <Menu.Target>
                   <Button variant="light" leftSection={<IconAdjustments size={16} />}>
                     Sort
                   </Button>
@@ -584,7 +630,7 @@ export function AssetGrid({ assets, onView, onDownload, onDelete }: AssetGridPro
               {assets.length > 0 && filters.search && (
                 <Button 
                   variant="light" 
-                  onClick={() => setFilters({ ...filters, search: '', type: 'all' })}
+                  onClick={() => setFilters({ ...filters, search: '', type: 'all', flight: 'all' })}
                 >
                   Clear Filters
                 </Button>

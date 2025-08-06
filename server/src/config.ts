@@ -10,7 +10,7 @@ export const config: Config = {
     useSSL: process.env.MINIO_USE_SSL === 'true',
     accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
     secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
-    bucket: process.env.MINIO_BUCKET || 'default'
+    bucket: process.env.MINIO_BUCKET || 'skystore'
   },
   gcp: {
     bucket: process.env.GCP_BUCKET || 'default-bucket',
