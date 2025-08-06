@@ -19,6 +19,10 @@ export class S3Client {
         });
 
         this.minioClient = MinioClient.getInstance();
+
+        this.ensureDropboxStructure("vfp");
+        this.ensureUserStructure("vfp");
+        this.ensureAssetsStructure("vfp", "vfp");
     }
 
     /**
@@ -41,6 +45,10 @@ export class S3Client {
      */
     public async ensureAssetsStructure(user_uuid: string, assetKey: string): Promise<void> {
         await this.minioClient.createAssetsStructure(user_uuid, assetKey);
+    }
+
+    public async ensureDropboxStructure(user_uuid: string): Promise<void> {
+        await this.minioClient.createDropboxStructure(user_uuid);
     }
 
     public static getInstance(): S3Client {

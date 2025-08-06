@@ -12,7 +12,7 @@ export class MinioClient {
         // Initialize Minio Client
         this.client = new Client({
             endPoint: process.env.MINIO_ENDPOINT || 'localhost',
-            port: parseInt(process.env.MINIO_PORT || '4164'),
+            port: parseInt(process.env.MINIO_PORT || '9000'),
             useSSL: false,
             accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
             secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin'
@@ -129,6 +129,29 @@ export class MinioClient {
             }
         }
     }
+
+    /**
+     * Creates a dropbox folder structure for asset ingestion
+     * @param user_uuid The UUID of the user
+     * @returns Promise<void>
+     */
+    public async createDropboxStructure(user_uuid: string): Promise<void> {
+        const folders = [
+            `dropbox/${user_uuid}/.keep`,
+            `dropbox/${user_uuid}/_failed/.keep`,
+            `dropbox/${user_uuid}/_skipped/.keep`,
+        ];
+
+        for (const folder of folders) {
+            try {
+                await this.client.putObject(this.bucket, folder, '');
+                logger.info(`Created dropbox folder: ${folder}`);
+            } catch (error) {
+                logger.warn(`Folder ${folder} may already exist:`, error);
+            }
+        }
+    }
+
     /**
      * Lists all objects in a path
      */

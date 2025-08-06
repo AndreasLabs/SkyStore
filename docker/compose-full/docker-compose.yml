@@ -44,8 +44,7 @@ services:
 
   postgres:
     image: postgres:16
-    ports:
-      - "4152:5432"
+    command: ["postgres", "-p", "4152", "-c", "logging_collector=on"]
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -54,13 +53,12 @@ services:
       - postgres-data:/var/lib/postgresql/data
     network_mode: host
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d skystore"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d skystore -p 4152"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
     restart: unless-stopped
-    command: ["postgres", "-c", "logging_collector=on"]
 
   otel-collector:
     image: signoz/signoz-otel-collector:0.88.7

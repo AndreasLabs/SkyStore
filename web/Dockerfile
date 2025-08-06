@@ -1,4 +1,4 @@
-FROM oven/bun:1.0.30 as build
+FROM node:20-alpine as build
 
 WORKDIR /app
 
@@ -7,14 +7,20 @@ COPY web/package.json ./
 COPY web/bun.lock ./
 COPY core_types ./core_types
 
-# Install dependencies
-RUN bun install --frozen
+# Install dependencies using npm
+RUN npm install
 
-# Copy the rest of the application
-COPY web/ ./
+# Copy the rest of the application (excluding node_modules)
+COPY web/src ./src
+COPY web/public ./public
+COPY web/index.html ./
+COPY web/vite.config.ts ./
+COPY web/tsconfig.json ./
+COPY web/playwright.config.ts ./
+COPY web/eslint.config.js ./
 
 # Build the application
-RUN bun run build
+RUN npm run build
 
 # Production stage with nginx
 FROM nginx:alpine
