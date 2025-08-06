@@ -331,6 +331,115 @@ export const assetController = {
             });
             throw error;
         }
+    },
+
+    /**
+     * Creates a new asset record for an already uploaded file
+     * 
+     * Required parameters:
+     * @param storedPath - The path where the file is stored in S3/Minio
+     * @param fileName - Original file name
+     * @param fileType - MIME type of the file
+     * @param sizeBytes - Size of the file in bytes
+     * @param ownerUuid - UUID of the asset owner
+     * @param uploaderUuid - UUID of the user who uploaded the file
+     * @param flightUuid - Optional UUID of associated flight
+     * 
+     * @returns The created asset metadata
+     */
+    createAssetFromExisting: async (
+        storedPath: string,
+        ownerUuid: string,
+        uploaderUuid: string,
+        flightUuid?: string,
+    ): Promise<AssetWithRelations> => {
+        // Extract file information from the stored path
+        const s3Client = S3Client.getInstance();
+        
+        // Parse the path to get file name
+        const fileName = storedPath.split('/').pop() || 'unknown';
+        
+        try {
+            // Get file metadata from S3
+            logger.info(`Getting S3 file reference: ${storedPath}`);
+            const fileMetadata = await s3Client.getFileMetadata(storedPath);
+            const fileType = fileMetadata.type || 'application/octet-stream';
+            const sizeBytes = fileMetadata.size || 0;
+            
+            // Validate file type
+            if (!ACCEPTED_MIME_TYPES.has(fileType)) {
+                logger.error(`Invalid file type: ${fileType}`);
+                throw new ServerError(`File type not accepted: ${fileType}`, 400);
+            }
+
+            // Generate UUID for asset
+            const assetId = crypto.randomUUID();
+            
+            return record('asset.create_from_existing', async (span) => {
+                try {
+                    const extension = getFileExtension(fileName);
+                    
+                    // Move file to assets directory
+                    const newStoredPath = `assets/${ownerUuid}/${assetId}${extension}`;
+                    
+                    // Get file data from original location
+                    const fileData = s3Client.getFile(storedPath);
+                    
+                    // Upload to new location
+                    await s3Client.uploadFile(newStoredPath, fileData, fileType);
+                    
+                    // Generate download URL
+                    const downloadUrl = s3Client.getDownloadUrl(newStoredPath);
+                    
+                    // Generate thumbnail URL if applicable
+                    const thumbnailUrl = generateThumbnailUrl(newStoredPath, fileType);
+
+                    // Create asset in database using Prisma
+                    const asset = await prisma.asset.create({
+                        data: {
+                            uuid: assetId,
+                            name: fileName,
+                            stored_path: newStoredPath,
+                            file_type: fileType,
+                            extension: extension.substring(1), // Remove the dot
+                            size_bytes: sizeBytes,
+                            download_url: downloadUrl,
+                            thumbnail_url: thumbnailUrl,
+                            flight_uuid: flightUuid,
+                            owner_uuid: ownerUuid,
+                            uploader_uuid: uploaderUuid,
+                            access_uuids: [ownerUuid], // By default, owner has access
+                        },
+                        include: {
+                            flight: true,
+                        }
+                    });
+                    
+                    // Delete the original file after successful move
+                    await s3Client.deleteFile(storedPath);
+                    
+                    logger.info(`Asset ${assetId} created from existing file at ${storedPath}, moved to ${newStoredPath}`);
+                    return asset;
+                } catch (error) {
+                    logger.error('Failed to create asset record:', {
+                        error: error instanceof Error ? error.message : String(error),
+                        stored_path: storedPath,
+                    });
+                    throw error;
+                }
+            });
+        } catch (error) {
+            logger.error('Failed to get file metadata:', {
+                error: error instanceof Error ? error.message : String(error),
+                stored_path: storedPath,
+            });
+            
+            if (error instanceof Error && error.message.includes('ConnectionRefused')) {
+                throw new ServerError('Unable to connect to storage service. Please check your connection and try again.', 503);
+            }
+            
+            throw error;
+        }
     }
 };
 

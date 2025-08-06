@@ -43,6 +43,57 @@ export const assetRoutes = createBaseRoute('/assets')
     }
   )
 
+  // Create asset record for already uploaded file
+  .post('/create-from-existing',
+    async ({ body, set }: {
+      body: {
+        stored_path: string,
+        owner_uuid: string,
+        uploader_uuid: string,
+        flight_uuid?: string
+      },
+      set: {
+        status: number;
+        headers: Record<string, string>;
+      }
+    }) => {
+      try {
+        const asset = await assetController.createAssetFromExisting(
+          body.stored_path,
+          body.owner_uuid,
+          body.uploader_uuid,
+          body.flight_uuid
+        );
+
+        return {
+          success: true,
+          data: asset
+        };
+      } catch (err) {
+        console.log(err);
+        if (err instanceof ServerError) {
+          set.status = err.status;
+          return {
+            success: false,
+            error: err.message
+          };
+        }
+        set.status = 500;
+        return {  
+          success: false,
+          error: 'Failed to create asset record'
+        };
+      }
+    }, {
+      body: t.Object({
+        stored_path: t.String(),
+        owner_uuid: t.String(),
+        uploader_uuid: t.String(),
+        flight_uuid: t.Optional(t.String())
+      })
+    }
+  )
+
   // Upload a new asset
   .post('/upload', 
     async ({ body, set }: { 

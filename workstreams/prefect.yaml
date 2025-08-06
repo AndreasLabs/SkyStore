@@ -60,3 +60,19 @@ deployments:
       image: "{{ build-image.image }}"
       image_pull_policy: "never"
   schedules: []
+
+- name: dropbox-scanner
+  version: "1.0.0"
+  tags: [ "scanner", "automated" ]
+  description: "Scans MinIO dropbox folders and creates assets"
+  entrypoint: dropbox_scanner.py:scan_dropbox
+  parameters: {}
+  work_pool:
+    name: my-docker-pool
+    work_queue_name: null
+    job_variables:
+      image: "{{ build-image.image }}"
+      image_pull_policy: "never"
+  schedules:
+  - interval: 30
+    timezone: "UTC"
