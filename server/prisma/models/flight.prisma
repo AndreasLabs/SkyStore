@@ -1,0 +1,20 @@
+// Flight model - Drone flight data and management
+
+model Flight {
+  uuid        String    @id @default(uuid())
+  name        String
+  description String?
+  
+  // Location data
+  latitude    Float
+  longitude   Float
+  altitude    Float?
+  
+  aircraft    String
+  date        DateTime
+  
+  // Relation to Asset
+  assets      Asset[]
+  
+  @@map("flights")
+}

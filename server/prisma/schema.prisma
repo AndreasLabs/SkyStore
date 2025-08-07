@@ -1,96 +1,15 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// This is your main Prisma schema file
+// Models are now organized in separate files in the models/ directory:
+// - models/auth.prisma    - User and Session models
+// - models/asset.prisma   - Asset model
+// - models/flight.prisma  - Flight model
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["prismaSchemaFolder"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-}
-
-// User model for authentication
-model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  username      String    @unique
-  password      String
-  first_name    String?
-  last_name     String?
-  role          String    @default("user") // Can be "user", "admin", etc.
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
-  
-  // Session tokens
-  sessions      Session[]
-  
-  // For password reset functionality
-  reset_token   String?
-  reset_expires DateTime?
-  
-  @@map("users")
-}
-
-// Session model for managing user sessions
-model Session {
-  id          String   @id @default(uuid())
-  user_id     String
-  token       String   @unique
-  expires_at  DateTime
-  created_at  DateTime @default(now())
-  
-  // Relations
-  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  
-  @@map("sessions")
-}
-
-// Asset model
-model Asset {
-  uuid          String    @id @default(uuid())
-  name          String
-  stored_path   String
-  file_type     String
-  extension     String
-  size_bytes    Int
-  uploaded_at   DateTime  @default(now())
-  download_url  String
-  thumbnail_url String?
-  
-  // Relations
-  flight        Flight?  @relation(fields: [flight_uuid], references: [uuid])
-  flight_uuid   String?
-  
-  // User relations
-  owner_uuid    String
-  uploader_uuid String
-  
-  // Array of user UUIDs that have access
-  access_uuids  String[]
-  
-  @@map("assets")
-}
-
-// Flight model
-model Flight {
-  uuid        String    @id @default(uuid())
-  name        String
-  description String?
-  
-  // Location data
-  latitude    Float
-  longitude   Float
-  altitude    Float?
-  
-  aircraft    String
-  date        DateTime
-  
-  // Relation to Asset
-  assets      Asset[]
-  
-  @@map("flights")
 }

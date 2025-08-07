@@ -1,0 +1,26 @@
+// Asset model - File storage and management
+
+model Asset {
+  uuid          String    @id @default(uuid())
+  name          String
+  stored_path   String
+  file_type     String
+  extension     String
+  size_bytes    Int
+  uploaded_at   DateTime  @default(now())
+  download_url  String
+  thumbnail_url String?
+  
+  // Relations
+  flight        Flight?  @relation(fields: [flight_uuid], references: [uuid])
+  flight_uuid   String?
+  
+  // User relations
+  owner_uuid    String
+  uploader_uuid String
+  
+  // Array of user UUIDs that have access
+  access_uuids  String[]
+  
+  @@map("assets")
+}
