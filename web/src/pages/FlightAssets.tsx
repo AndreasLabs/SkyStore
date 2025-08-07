@@ -34,7 +34,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { AssetGrid } from '../components/AssetGrid';
 import { CreateFlightModal } from '../components/CreateFlightModal';
 
-import { useAssets, useCreateAsset } from '../hooks/useAssetHooks';
+import { useAssets, useCreateAsset, useDeleteAsset } from '../hooks/useAssetHooks';
 import { useFlights, useFlight } from '../hooks/useFlightHooks';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -68,6 +68,8 @@ export function FlightAssets() {
     refetch: refetchAssets
   } = useAssets(selectedFlightId || undefined);
 
+  const { mutate: deleteAsset } = useDeleteAsset();
+
   // Mutation hook for asset upload
   const { mutateAsync: createAsset, isPending: isUploading } = useCreateAsset();
 
@@ -77,12 +79,6 @@ export function FlightAssets() {
       setSelectedFlightId(flightId);
     }
   }, [flightId]);
-
-  // Debug log assets
-  useEffect(() => {
-    console.log('assets', assets);
-    console.log('selected flight', selectedFlightId);
-  }, [assets, selectedFlightId]);
 
   const handleFileUpload = async (files: File[] | null) => {
     if (!files || !user) {
@@ -314,7 +310,7 @@ export function FlightAssets() {
             assets={assets.data || []}
             onView={(asset) => console.log('View asset', asset)}
             onDownload={(asset) => window.open(asset.download_url, '_blank')}
-            onDelete={(asset) => console.log('Delete asset', asset)}
+            onDelete={(asset) => deleteAsset(asset.uuid)}
           />
         )}
       </Stack>

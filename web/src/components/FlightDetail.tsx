@@ -264,7 +264,7 @@ export function FlightDetail({
             assets={assets}
             onView={(asset) => console.log('View asset', asset)}
             onDownload={(asset) => window.open(asset.download_url, '_blank')}
-            onDelete={(asset) => console.log('Delete asset', asset)}
+            onDelete={(asset) => deleteAsset(asset.id)}
           />
         )}
       </Stack>

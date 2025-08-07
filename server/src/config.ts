@@ -2,7 +2,7 @@ import { Config } from './types/Config';
 
 export const config: Config = {
   redis: {
-    url: process.env.REDIS_URL || 'redis://localhost:4162'
+    url: process.env.REDIS_URL || 'localhost:6379'
   },
   minio: {
     endPoint: process.env.MINIO_ENDPOINT || 'localhost',

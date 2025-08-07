@@ -36,7 +36,8 @@ const createAsset = async (file: File, owner_uuid: string, uploader_uuid: string
 };
 
 const deleteAsset = async (assetId: string) => {
-  await api.assets[':id'].delete({ params: { id: assetId } });
+  console.log("Deleting asset", assetId);
+  await api.assets({id: assetId}).delete();
 };
 
 // Hook for fetching a list of assets
